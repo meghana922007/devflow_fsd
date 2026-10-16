@@ -1,0 +1,241 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700&display=swap');
+
+:root {
+  /* Exact Professional 5-Color Palette */
+  --color-primary: #2b6777;       /* Deep Professional Teal */
+  --color-primary-dark: #1e4d59;  /* Dark Teal Hover/Active */
+  --color-secondary: #c8d8e4;     /* Slate Ice Blue */
+  --color-white: #ffffff;         /* Pure White Surface */
+  --color-gray-bg: #f2f2f2;       /* Light Neutral Gray App Background */
+  --color-accent: #52ab98;        /* Emerald Mint Accent */
+  --color-accent-dark: #3f9180;   /* Mint Hover */
+
+  /* UI Functional Mapping */
+  --bg-main: var(--color-gray-bg);
+  --bg-card: var(--color-white);
+  --bg-subtle: #e8f0f5;           /* Light tint using #c8d8e4 blend */
+  --bg-sidebar: var(--color-white);
+
+  --text-main: #1c3d44;           /* High contrast Dark Teal Charcoal */
+  --text-muted: #527982;          /* Muted Teal Gray */
+  --text-light: #7f9fa7;          /* Subdued Caption Text */
+  --border-color: var(--color-secondary);
+  --border-subtle: #dbe6ee;
+
+  /* Theme Badges mapped strictly to the palette */
+  --badge-primary-bg: #e2eff2;
+  --badge-primary-text: var(--color-primary);
+  
+  --badge-accent-bg: #e6f6f3;
+  --badge-accent-text: var(--color-accent);
+  
+  --badge-slate-bg: var(--color-secondary);
+  --badge-slate-text: var(--text-main);
+
+  --badge-neutral-bg: var(--color-gray-bg);
+  --badge-neutral-text: var(--color-primary);
+
+  /* Legacy variable mappings to prevent broken styles */
+  --pastel-lavender: #e2eff2;
+  --pastel-lavender-dark: #2b6777;
+  --pastel-lavender-text: #1c3d44;
+
+  --pastel-rose: #e6f6f3;
+  --pastel-rose-dark: #52ab98;
+  --pastel-rose-text: #1c3d44;
+
+  --pastel-mint: #e6f6f3;
+  --pastel-mint-dark: #52ab98;
+  --pastel-mint-text: #1c3d44;
+
+  --pastel-sky: #e2eff2;
+  --pastel-sky-dark: #2b6777;
+  --pastel-sky-text: #1c3d44;
+
+  --pastel-peach: #c8d8e4;
+  --pastel-peach-dark: #2b6777;
+  --pastel-peach-text: #1c3d44;
+
+  --pastel-coral: #e2eff2;
+  --pastel-coral-dark: #2b6777;
+  --pastel-coral-text: #1c3d44;
+
+  /* Shadows */
+  --shadow-soft: 0 4px 16px rgba(43, 103, 119, 0.08);
+  --shadow-3d-hover: 0 12px 24px rgba(43, 103, 119, 0.16);
+  --shadow-dragging: 0 20px 40px rgba(43, 103, 119, 0.25);
+
+  /* Radius */
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-pill: 9999px;
+  
+  /* Fonts */
+  --font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Outfit', sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-family);
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+  transition: all 0.2s ease;
+}
+
+input, textarea, select {
+  font-family: inherit;
+  font-size: 0.95rem;
+}
+
+/* Glass Panel */
+.glass-panel {
+  background: var(--color-white);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-soft);
+}
+
+/* 3D Card */
+.pastel-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-soft);
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+  transform-style: preserve-3d;
+  will-change: transform, box-shadow;
+}
+
+.pastel-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-3d-hover);
+  border-color: var(--color-primary);
+}
+
+/* Drag & Drop Visual Dynamics */
+.pastel-card[draggable="true"] {
+  cursor: grab;
+}
+
+.pastel-card[draggable="true"]:active {
+  cursor: grabbing;
+}
+
+.card-dragging {
+  opacity: 0.6;
+  transform: scale(0.97) rotate(2deg) !important;
+  box-shadow: var(--shadow-dragging) !important;
+  border: 2px dashed var(--color-primary) !important;
+}
+
+.column-drag-over {
+  background-color: #e2eff2 !important;
+  border: 2px dashed var(--color-primary) !important;
+  box-shadow: inset 0 0 16px rgba(43, 103, 119, 0.12);
+}
+
+.drop-placeholder-indicator {
+  padding: 14px;
+  border: 2px dashed var(--color-primary);
+  border-radius: var(--radius-md);
+  background: #e2eff2;
+  text-align: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes modalPop {
+  from { opacity: 0; transform: scale(0.96) translateY(12px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.25s ease forwards;
+}
+
+.animate-modal-pop {
+  animation: modalPop 0.25s ease forwards;
+}
+
+/* Badge Styles */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.badge-lavender, .badge-primary { background-color: var(--badge-primary-bg); color: var(--badge-primary-text); }
+.badge-rose, .badge-accent { background-color: var(--badge-accent-bg); color: var(--badge-accent-text); }
+.badge-mint { background-color: var(--badge-accent-bg); color: var(--badge-accent-text); }
+.badge-sky { background-color: var(--badge-primary-bg); color: var(--badge-primary-text); }
+.badge-peach { background-color: var(--badge-slate-bg); color: var(--badge-slate-text); }
+.badge-coral { background-color: var(--badge-primary-bg); color: var(--badge-primary-text); }
+
+/* Buttons */
+.btn-primary {
+  background-color: var(--color-primary);
+  color: var(--color-white);
+  padding: 10px 20px;
+  border-radius: var(--radius-pill);
+  font-weight: 600;
+  font-size: 0.9rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 12px rgba(43, 103, 119, 0.25);
+  transition: all 0.2s ease;
+}
+
+.btn-primary:hover {
+  background-color: var(--color-primary-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(43, 103, 119, 0.35);
+}
+
+.btn-secondary {
+  background-color: var(--color-white);
+  color: var(--text-main);
+  border: 1px solid var(--border-color);
+  padding: 10px 18px;
+  border-radius: var(--radius-pill);
+  font-weight: 600;
+  font-size: 0.9rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-secondary:hover {
+  background-color: var(--color-gray-bg);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
