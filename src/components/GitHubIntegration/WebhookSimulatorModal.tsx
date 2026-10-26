@@ -140,7 +140,7 @@ export const WebhookSimulatorModal: React.FC = () => {
             }}>
               <CheckCircle2 size={18} color="#52ab98" />
               <span>
-                Simulated <code>{lastDispatched}</code> event ingested! 200 OK verified. Check the Commits, PRs, or Webhook tabs.
+                Simulated <code>{lastDispatched}</code> event ingested! 200 OK verified. Check the Commits, PRs, Webhooks, or CI/CD tabs.
               </span>
             </div>
           )}

@@ -1,4 +1,4 @@
-import type { Project, Task, Issue, User, ActivityItem, PullRequest, Commit, Branch, WebhookEvent, RepoSettings } from '../types';
+import type { Project, Task, Issue, User, ActivityItem, PullRequest, Commit, Branch, WebhookEvent, RepoSettings, WorkflowRun } from '../types';
 
 export const mockUsers: User[] = [
   {
@@ -716,3 +716,503 @@ export const defaultRepoSettings: RepoSettings = {
   openIssuesCount: 0,
   isLiveSync: true
 };
+
+export const mockWorkflowRuns: WorkflowRun[] = [
+  {
+    id: 'run-106',
+    runNumber: 106,
+    projectId: 'p1',
+    name: 'Automated Playwright E2E Regression',
+    workflowFileName: 'e2e.yml',
+    status: 'in_progress',
+    event: 'workflow_dispatch',
+    branch: 'main',
+    commitSha: '5fe7edf',
+    commitMessage: 'E2E Playwright Browser Matrix (Chromium, Firefox, WebKit)',
+    authorName: 'Meghana Pinikeshi',
+    authorAvatar: mockUsers[1].avatar,
+    githubUsername: 'meghana922007',
+    duration: 'Running (42s)',
+    durationSeconds: 42,
+    startedAt: 'Just now',
+    jobs: [
+      {
+        id: 'job-106-1',
+        name: 'Browser Matrix: Chromium & Firefox',
+        runner: 'ubuntu-latest',
+        status: 'in_progress',
+        duration: '42s',
+        steps: [
+          {
+            name: 'Set up runner & Node.js 22',
+            status: 'completed',
+            durationSeconds: 8,
+            logs: [
+              '[INFO] Initializing GitHub Actions runner (ubuntu-24.04)',
+              '[INFO] Version: 20261014.1',
+              '[INFO] Setting up Node.js v22.11.0 and npm 11.21.1',
+              '[SUCCESS] Node.js environment configured.'
+            ]
+          },
+          {
+            name: 'Install dependencies & Playwright browsers',
+            status: 'completed',
+            durationSeconds: 22,
+            logs: [
+              '$ npm ci',
+              'added 28 packages in 1.2s',
+              '$ npx playwright install --with-deps chromium firefox',
+              'Downloading Chromium 130.0.6723.44 (134.2 MB)...',
+              'Downloading Firefox 131.0 (82.1 MB)...',
+              '[SUCCESS] Playwright browsers installed.'
+            ]
+          },
+          {
+            name: 'Execute E2E Playwright test specs',
+            status: 'in_progress',
+            durationSeconds: 12,
+            logs: [
+              '$ npx playwright test --workers=2',
+              'Running 14 tests using 2 workers',
+              '[Chromium] › auth.spec.ts:12:1 › should allow developer sign in [PASSED]',
+              '[Chromium] › kanban.spec.ts:24:1 › should drag card to In Review [PASSED]',
+              '[Firefox]  › auth.spec.ts:12:1 › should allow developer sign in [PASSED]',
+              '⏳ Executing kanban.spec.ts:48:1 › should update subtask progress meter...'
+            ]
+          }
+        ]
+      }
+    ],
+    testOutcome: {
+      total: 14,
+      passed: 6,
+      failed: 0,
+      skipped: 0,
+      duration: '42s',
+      coveragePercent: 88.5
+    },
+    htmlUrl: 'https://github.com/meghana922007/devflow_fsd/actions/runs/106',
+    isLive: true
+  },
+  {
+    id: 'run-105',
+    runNumber: 105,
+    projectId: 'p1',
+    name: 'CI / Build, Lint & Test Suite',
+    workflowFileName: 'ci.yml',
+    status: 'success',
+    event: 'push',
+    branch: 'main',
+    commitSha: '5fe7edf',
+    commitMessage: 'till module 3',
+    authorName: 'Meghana Pinikeshi',
+    authorAvatar: mockUsers[1].avatar,
+    githubUsername: 'meghana922007',
+    duration: '1m 18s',
+    durationSeconds: 78,
+    startedAt: '25 mins ago',
+    completedAt: '23 mins ago',
+    jobs: [
+      {
+        id: 'job-105-1',
+        name: 'Environment & Dependency Cache',
+        runner: 'ubuntu-latest',
+        status: 'completed',
+        duration: '18s',
+        steps: [
+          {
+            name: 'Set up runner & restore cache',
+            status: 'completed',
+            durationSeconds: 6,
+            logs: [
+              '[INFO] Initializing runner ubuntu-24.04',
+              '[INFO] Restoring ~/.npm cache from primary key Linux-npm-20261016',
+              '[INFO] Cache restored successfully (18.4 MB)'
+            ]
+          },
+          {
+            name: 'Checkout repository',
+            status: 'completed',
+            durationSeconds: 4,
+            logs: [
+              '$ git init /home/runner/work/devflow/devflow',
+              '$ git remote add origin https://github.com/meghana922007/devflow',
+              '$ git fetch --no-tags --prune --depth=1 origin +refs/heads/main:*',
+              '[SUCCESS] Checked out commit 5fe7edf35ff7856fd8b3641f7675e7fac2818412'
+            ]
+          },
+          {
+            name: 'Install npm packages',
+            status: 'completed',
+            durationSeconds: 8,
+            logs: [
+              '$ npm ci',
+              'added 28 packages in 0.9s',
+              '[SUCCESS] 0 vulnerabilities found.'
+            ]
+          }
+        ]
+      },
+      {
+        id: 'job-105-2',
+        name: 'Code Quality & Oxlint Verification',
+        runner: 'ubuntu-latest',
+        status: 'completed',
+        duration: '12s',
+        steps: [
+          {
+            name: 'Run oxlint static analysis',
+            status: 'completed',
+            durationSeconds: 12,
+            logs: [
+              '$ npx oxlint',
+              'Found 48 source files.',
+              'Checked 13,647 lines of TypeScript and React code.',
+              'oxlint: 0 errors, 0 warnings found in 180ms.',
+              '[SUCCESS] All code quality standards passed.'
+            ]
+          }
+        ]
+      },
+      {
+        id: 'job-105-3',
+        name: 'TypeScript Compilation & Production Bundle',
+        runner: 'ubuntu-latest',
+        status: 'completed',
+        duration: '24s',
+        steps: [
+          {
+            name: 'Execute typecheck (tsc -b)',
+            status: 'completed',
+            durationSeconds: 9,
+            logs: [
+              '$ tsc -b',
+              '[INFO] TypeScript compiler v6.0.2 checking project files...',
+              '[SUCCESS] TypeScript build passed with 0 diagnostic errors.'
+            ]
+          },
+          {
+            name: 'Bundle production assets (vite build)',
+            status: 'completed',
+            durationSeconds: 15,
+            logs: [
+              '$ vite build',
+              'vite v8.3.4 building client environment for production...',
+              'transforming (1925 modules)...',
+              '✓ 1925 modules transformed.',
+              'rendering chunks...',
+              'dist/index.html                   0.47 kB │ gzip:   0.30 kB',
+              'dist/assets/index-DR0limuR.css    4.78 kB │ gzip:   1.49 kB',
+              'dist/assets/index-305ArP1A.js   479.01 kB │ gzip: 117.16 kB',
+              '[SUCCESS] Built in 730ms. Artifacts ready for deployment.'
+            ]
+          }
+        ]
+      },
+      {
+        id: 'job-105-4',
+        name: 'Unit & Component Test Suites (Vitest)',
+        runner: 'ubuntu-latest',
+        status: 'completed',
+        duration: '24s',
+        steps: [
+          {
+            name: 'Run unit test suite with coverage',
+            status: 'completed',
+            durationSeconds: 24,
+            logs: [
+              '$ vitest run --coverage',
+              'RUN  v2.1.2 /home/runner/work/devflow/devflow',
+              '✓ src/tests/auth.test.ts (8 tests) 340ms',
+              '✓ src/tests/kanban.test.ts (14 tests) 620ms',
+              '✓ src/tests/issues.test.ts (10 tests) 480ms',
+              '✓ src/tests/githubSync.test.ts (16 tests) 590ms',
+              '',
+              'Test Files  4 passed (4)',
+              'Tests  48 passed (48)',
+              'Coverage  Statements: 94.2%, Branches: 91.8%, Functions: 95.0%, Lines: 94.2%',
+              '[SUCCESS] All 48 tests passed.'
+            ]
+          }
+        ]
+      }
+    ],
+    testOutcome: {
+      total: 48,
+      passed: 48,
+      failed: 0,
+      skipped: 0,
+      duration: '18.4s',
+      coveragePercent: 94.2
+    },
+    artifacts: [
+      { name: 'devflow-dist-bundle.zip', size: '484 KB' },
+      { name: 'coverage-report.lcov', size: '1.2 MB' }
+    ],
+    htmlUrl: 'https://github.com/meghana922007/devflow_fsd/actions/runs/105',
+    isLive: true
+  },
+  {
+    id: 'run-104',
+    runNumber: 104,
+    projectId: 'p1',
+    name: 'PR Validation & Integration',
+    workflowFileName: 'pr-check.yml',
+    status: 'failure',
+    event: 'pull_request',
+    pullRequestNumber: 42,
+    branch: 'feature/kanban-pastel-ui',
+    commitSha: '902fe86',
+    commitMessage: 'feat: DevFlow Module 1 - Core Workspace, Auth, Kanban Board',
+    authorName: 'Aarav Sharma',
+    authorAvatar: mockUsers[0].avatar,
+    githubUsername: 'aarav_dev',
+    duration: '45s',
+    durationSeconds: 45,
+    startedAt: '2 hours ago',
+    completedAt: '2 hours ago',
+    jobs: [
+      {
+        id: 'job-104-1',
+        name: 'Setup & Dependencies',
+        runner: 'ubuntu-latest',
+        status: 'completed',
+        duration: '12s',
+        steps: [
+          {
+            name: 'Checkout & npm ci',
+            status: 'completed',
+            durationSeconds: 12,
+            logs: [
+              '[INFO] Checking out branch feature/kanban-pastel-ui',
+              '$ npm ci',
+              'added 28 packages in 1.1s'
+            ]
+          }
+        ]
+      },
+      {
+        id: 'job-104-2',
+        name: 'Typecheck & Code Style',
+        runner: 'ubuntu-latest',
+        status: 'completed',
+        duration: '15s',
+        steps: [
+          {
+            name: 'tsc and oxlint',
+            status: 'completed',
+            durationSeconds: 15,
+            logs: [
+              '$ tsc -b',
+              '$ oxlint',
+              '[SUCCESS] Lint & types passed cleanly.'
+            ]
+          }
+        ]
+      },
+      {
+        id: 'job-104-3',
+        name: 'Kanban Stage Transition Tests',
+        runner: 'ubuntu-latest',
+        status: 'failed',
+        duration: '18s',
+        steps: [
+          {
+            name: 'Run vitest suite for Kanban board',
+            status: 'failed',
+            durationSeconds: 18,
+            logs: [
+              '$ vitest run src/tests/kanban.test.ts',
+              'RUN  v2.1.2 src/tests/kanban.test.ts',
+              '✓ should render 4 equal columns (To Do, In Progress, In Review, Done)',
+              '✓ should filter tasks by priority badge',
+              'FAIL src/tests/kanban.test.ts > KanbanBoard > drag-and-drop state transition',
+              'AssertionError: expected "review" to deeply equal "in_progress"',
+              '  - Expected: "in_progress"',
+              '  + Received: "review"',
+              '    at src/tests/kanban.test.ts:74:28',
+              '    at async runTest (vitest/runtime/runner.js:142)',
+              '',
+              'FAIL src/tests/kanban.test.ts > TaskCard > 3D tilt coordinates calculation',
+              'AssertionError: Expected rotation angle to be clamped within [-15, 15]deg, got 24deg',
+              '    at src/tests/kanban.test.ts:98:15',
+              '',
+              'Test Files  1 failed (1)',
+              'Tests  46 passed, 2 failed (48)',
+              '[ERROR] Process completed with exit code 1.'
+            ]
+          }
+        ]
+      }
+    ],
+    testOutcome: {
+      total: 48,
+      passed: 46,
+      failed: 2,
+      skipped: 0,
+      duration: '14.2s',
+      coveragePercent: 88.4,
+      failedTestDetails: [
+        'src/tests/kanban.test.ts:74 — expected task stage "in_progress" but received "review"',
+        'src/tests/kanban.test.ts:98 — rotation angle exceeds 15deg bound limit (got 24deg)'
+      ]
+    },
+    htmlUrl: 'https://github.com/meghana922007/devflow_fsd/actions/runs/104',
+    isLive: true
+  },
+  {
+    id: 'run-103',
+    runNumber: 103,
+    projectId: 'p1',
+    name: 'Docker Container Package & Vulnerability Scan',
+    workflowFileName: 'docker.yml',
+    status: 'success',
+    event: 'push',
+    branch: 'main',
+    commitSha: '7e76ab2',
+    commitMessage: 'docs: add squid-7 as a project contributor',
+    authorName: 'Meghana Pinikeshi',
+    authorAvatar: mockUsers[1].avatar,
+    githubUsername: 'meghana922007',
+    duration: '2m 04s',
+    durationSeconds: 124,
+    startedAt: '5 hours ago',
+    completedAt: '5 hours ago',
+    jobs: [
+      {
+        id: 'job-103-1',
+        name: 'Multi-stage Docker Build',
+        runner: 'ubuntu-latest',
+        status: 'completed',
+        duration: '58s',
+        steps: [
+          {
+            name: 'Docker Buildx Builder initialization',
+            status: 'completed',
+            durationSeconds: 12,
+            logs: [
+              '[INFO] Initializing Docker Buildx v0.17.1',
+              '[INFO] Platforms supported: linux/amd64, linux/arm64'
+            ]
+          },
+          {
+            name: 'Build multi-stage image',
+            status: 'completed',
+            durationSeconds: 46,
+            logs: [
+              '#1 [internal] load build definition from Dockerfile',
+              '#2 [stage-0 1/4] FROM node:22-alpine AS builder',
+              '#3 [stage-0 2/4] WORKDIR /app',
+              '#4 [stage-0 3/4] COPY package*.json ./ && RUN npm ci',
+              '#5 [stage-0 4/4] RUN npm run build',
+              '#6 [stage-1 1/2] FROM nginx:alpine-slim',
+              '#7 [stage-1 2/2] COPY --from=builder /app/dist /usr/share/nginx/html',
+              '[SUCCESS] Image built: devflow:5fe7edf (Compressed size: 24.2 MB)'
+            ]
+          }
+        ]
+      },
+      {
+        id: 'job-103-2',
+        name: 'Trivy Security Vulnerability Scan',
+        runner: 'ubuntu-latest',
+        status: 'completed',
+        duration: '32s',
+        steps: [
+          {
+            name: 'Run Aquasec Trivy CVE Scanner',
+            status: 'completed',
+            durationSeconds: 32,
+            logs: [
+              '$ trivy image --severity HIGH,CRITICAL devflow:5fe7edf',
+              'Scanning container image devflow:5fe7edf...',
+              'Total: 0 (HIGH: 0, CRITICAL: 0)',
+              '[SUCCESS] Container vulnerability scan passed with 0 CVEs.'
+            ]
+          }
+        ]
+      },
+      {
+        id: 'job-103-3',
+        name: 'Publish to GitHub Container Registry (ghcr.io)',
+        runner: 'ubuntu-latest',
+        status: 'completed',
+        duration: '34s',
+        steps: [
+          {
+            name: 'Push container image to ghcr.io',
+            status: 'completed',
+            durationSeconds: 34,
+            logs: [
+              '$ docker push ghcr.io/meghana922007/devflow:latest',
+              'The push refers to repository [ghcr.io/meghana922007/devflow]',
+              'Digest: sha256:7f920da83c19e83a910d9f0412e87c02b',
+              '[SUCCESS] Image successfully published.'
+            ]
+          }
+        ]
+      }
+    ],
+    artifacts: [
+      { name: 'trivy-scan-report.json', size: '24 KB' },
+      { name: 'docker-image-digest.sha256', size: '64 B' }
+    ],
+    htmlUrl: 'https://github.com/meghana922007/devflow_fsd/actions/runs/103',
+    isLive: true
+  },
+  {
+    id: 'run-102',
+    runNumber: 102,
+    projectId: 'p1',
+    name: 'Security CodeQL Deep Scan',
+    workflowFileName: 'codeql.yml',
+    status: 'success',
+    event: 'schedule',
+    branch: 'main',
+    commitSha: '5fe7edf',
+    commitMessage: 'weekly automated security scan',
+    authorName: 'Ananya Patel',
+    authorAvatar: mockUsers[3].avatar,
+    githubUsername: 'ananya_qa',
+    duration: '3m 12s',
+    durationSeconds: 192,
+    startedAt: 'Yesterday at 04:00 AM',
+    completedAt: 'Yesterday at 04:03 AM',
+    jobs: [
+      {
+        id: 'job-102-1',
+        name: 'CodeQL Static Analysis',
+        runner: 'ubuntu-latest',
+        status: 'completed',
+        duration: '3m 12s',
+        steps: [
+          {
+            name: 'Initialize CodeQL Database',
+            status: 'completed',
+            durationSeconds: 45,
+            logs: [
+              '[INFO] Initializing CodeQL database for languages: javascript-typescript',
+              '[INFO] CodeQL version: 2.19.1'
+            ]
+          },
+          {
+            name: 'Perform CodeQL Queries',
+            status: 'completed',
+            durationSeconds: 147,
+            logs: [
+              '[INFO] Running security-extended query pack...',
+              'Evaluated 128 queries across 48 source files.',
+              'Security alerts: 0 (No high-severity vulnerabilities found)',
+              '[SUCCESS] CodeQL security audit complete.'
+            ]
+          }
+        ]
+      }
+    ],
+    artifacts: [
+      { name: 'codeql-results.sarif', size: '158 KB' }
+    ],
+    htmlUrl: 'https://github.com/meghana922007/devflow_fsd/actions/runs/102',
+    isLive: true
+  }
+];

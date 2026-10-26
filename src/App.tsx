@@ -16,6 +16,9 @@ import { DiffModal } from './components/GitHubIntegration/DiffModal';
 import { NewPullRequestModal } from './components/GitHubIntegration/NewPullRequestModal';
 import { WebhookSimulatorModal } from './components/GitHubIntegration/WebhookSimulatorModal';
 import { RepoSettingsModal } from './components/GitHubIntegration/RepoSettingsModal';
+import { CICDHub } from './components/CICDMonitoring/CICDHub';
+import { BuildLogModal } from './components/CICDMonitoring/BuildLogModal';
+import { DispatchWorkflowModal } from './components/CICDMonitoring/DispatchWorkflowModal';
 import { AuthScreen } from './components/Auth/AuthScreen';
 
 const MainContent: React.FC = () => {
@@ -35,6 +38,7 @@ const MainContent: React.FC = () => {
       {activeTab === 'kanban' && <KanbanBoard />}
       {activeTab === 'issues' && <IssueList />}
       {activeTab === 'github' && <GitHubHub />}
+      {activeTab === 'cicd' && <CICDHub />}
       {activeTab === 'team' && <TeamSettings />}
     </main>
   );
@@ -64,6 +68,8 @@ const AppShell: React.FC = () => {
       <NewPullRequestModal />
       <WebhookSimulatorModal />
       <RepoSettingsModal />
+      <BuildLogModal />
+      <DispatchWorkflowModal />
     </div>
   );
 };

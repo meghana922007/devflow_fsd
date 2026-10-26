@@ -12,7 +12,8 @@ import {
   LogOut,
   ChevronUp,
   Plus,
-  CheckCircle2
+  CheckCircle2,
+  Cpu
 } from 'lucide-react';
 
 export const Sidebar: React.FC = () => {
@@ -26,6 +27,7 @@ export const Sidebar: React.FC = () => {
     tasks,
     issues,
     pullRequests,
+    workflowRuns,
     currentView,
     currentUser,
     logout,
@@ -39,6 +41,7 @@ export const Sidebar: React.FC = () => {
   const projectTasks = tasks.filter(t => t.projectId === activeProject.id);
   const projectIssues = issues.filter(i => i.projectId === activeProject.id);
   const projectPRs = pullRequests.filter(p => p.projectId === activeProject.id);
+  const runningPipelinesCount = workflowRuns.filter(r => (r.projectId === activeProject.id || !r.projectId) && r.status === 'in_progress').length;
 
   const openTasksCount = projectTasks.filter(t => t.stage !== 'done').length;
   const openBugsCount = projectIssues.filter(i => i.status !== 'closed' && i.status !== 'resolved').length;
@@ -366,7 +369,58 @@ export const Sidebar: React.FC = () => {
               )}
             </button>
 
-            {/* 5. Team & Settings */}
+            {/* 5. CI/CD Pipelines (Module 4) */}
+            <button
+              onClick={() => setActiveTab('cicd')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '10px 14px',
+                borderRadius: 'var(--radius-md)',
+                backgroundColor: activeTab === 'cicd' ? '#e2eff2' : 'transparent',
+                color: activeTab === 'cicd' ? '#2b6777' : 'var(--text-muted)',
+                fontWeight: activeTab === 'cicd' ? 700 : 500,
+                fontSize: '0.88rem',
+                border: '1px solid',
+                borderColor: activeTab === 'cicd' ? '#c8d8e4' : 'transparent',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <Cpu size={17} color={activeTab === 'cicd' ? '#2b6777' : 'currentColor'} />
+                <span>CI/CD Pipelines</span>
+              </div>
+              {runningPipelinesCount > 0 ? (
+                <span style={{
+                  fontSize: '0.7rem',
+                  fontWeight: 800,
+                  backgroundColor: '#38bdf8',
+                  color: '#0c4a6e',
+                  padding: '2px 8px',
+                  borderRadius: 'var(--radius-pill)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}>
+                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#0284c7' }} />
+                  {runningPipelinesCount} live
+                </span>
+              ) : (
+                <span style={{
+                  fontSize: '0.68rem',
+                  fontWeight: 800,
+                  backgroundColor: activeTab === 'cicd' ? '#2b6777' : '#f2f2f2',
+                  color: activeTab === 'cicd' ? '#ffffff' : '#527982',
+                  padding: '2px 6px',
+                  borderRadius: '4px'
+                }}>
+                  M4
+                </span>
+              )}
+            </button>
+
+            {/* 6. Team & Settings */}
             <button
               onClick={() => setActiveTab('team')}
               style={{

@@ -96,6 +96,24 @@ Allows managing engineering profiles and project assignments:
 
 ---
 
+### ⚙️ 4. Module 4: CI/CD Pipeline Monitoring
+Focuses on real-time pipeline status visibility, automated job diagnostics, and GitHub Actions telemetry.
+
+* **Automated Workflow Dashboard (`CICDHub.tsx`)**:
+  * Real-time telemetry banner: Total runs, Build Pass Rate %, Average duration, and live active running runs.
+  * Granular filter by status (`All`, `Passed ✅`, `Failed ❌`, `Running ⏳`), workflow type, and git branch.
+* **Pipeline Execution DAG (`WorkflowGraph.tsx`)**:
+  * Interactive Directed Acyclic Graph displaying job execution stages with live status indicators.
+* **Developer Terminal Console (`BuildLogModal.tsx`)**:
+  * ANSI dark console (`#0d1117`) with colored log lines (`[INFO]`, `[SUCCESS]`, `[ERROR]`), line numbers, step selector, search, copy, and download.
+  * **AI Failure Diagnostic Engine**: Automatically parses failed test assertions, diagnoses root cause, and provides a 1-click "Copy Code Fix" diff!
+* **Workflow Dispatch (`DispatchWorkflowModal.tsx`)**:
+  * Manual pipeline trigger modal on any branch with custom test & coverage parameters.
+* **Repository CI/CD Pipeline (`.github/workflows/ci.yml`)**:
+  * Real GitHub Actions workflow configured for `oxlint`, `tsc -b`, and `vite build`.
+
+---
+
 ## ⚡ How We Built It (Architecture & Data Flow)
 
 ```
@@ -155,8 +173,11 @@ Creates an optimized production build in the `dist/` directory verified with Typ
 * `src/context/AppContext.tsx`: Global state manager.
 * `src/components/Sidebar.tsx`: Pastel navigation bar with Projects Hub link.
 * `src/components/Header.tsx`: Global search & creation action buttons.
-* `src/components/DashboardOverview.tsx`: Combined Module 1 & 2 telemetry dashboard.
+* `src/components/DashboardOverview.tsx`: Combined multi-module telemetry dashboard.
 * `src/components/ProjectsHub/`: Projects Hub landing page & creation modal.
 * `src/components/TaskManagement/`: Module 1 Kanban board, 3D task card, task modal.
 * `src/components/IssueTracking/`: Module 2 defect grid/table, issue modal.
+* `src/components/GitHubIntegration/`: Module 3 GitHub PRs, commits stream, diff viewer, webhooks.
+* `src/components/CICDMonitoring/`: Module 4 CI/CD pipeline hub, DAG visualizer, build log terminal, workflow dispatch modal.
 * `src/components/ProjectTeam/`: Team settings & user modal.
+* `.github/workflows/ci.yml`: GitHub Actions CI pipeline.

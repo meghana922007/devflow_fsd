@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import type { Project, Task, Issue, TaskStage, IssueStatus, ActivityItem, User, PullRequest, Commit, Branch, WebhookEvent, RepoSettings } from '../types';
+import type { Project, Task, Issue, TaskStage, IssueStatus, ActivityItem, User, PullRequest, Commit, Branch, WebhookEvent, RepoSettings, WorkflowRun } from '../types';
 import {
   parseGitHubRepo,
   fetchGitHubRepoDetails,
@@ -7,7 +7,8 @@ import {
   fetchGitHubBranches,
   fetchGitHubPullRequests,
   fetchUserPublicRepos,
-  checkRateLimit
+  checkRateLimit,
+  fetchGitHubWorkflowRuns
 } from '../services/githubService';
 import type { GitHubRateLimitInfo, UserPublicRepo } from '../services/githubService';
 import {
@@ -20,7 +21,8 @@ import {
   mockCommits,
   mockBranches,
   mockWebhookEvents,
-  defaultRepoSettings
+  defaultRepoSettings,
+  mockWorkflowRuns
 } from '../data/mockData';
 
 interface AppContextType {
@@ -42,8 +44,8 @@ interface AppContextType {
   backToHub: () => void;
   addProject: (project: Omit<Project, 'id' | 'createdAt'>) => void;
   
-  activeTab: 'dashboard' | 'kanban' | 'issues' | 'team' | 'github';
-  setActiveTab: (tab: 'dashboard' | 'kanban' | 'issues' | 'team' | 'github') => void;
+  activeTab: 'dashboard' | 'kanban' | 'issues' | 'team' | 'github' | 'cicd';
+  setActiveTab: (tab: 'dashboard' | 'kanban' | 'issues' | 'team' | 'github' | 'cicd') => void;
   
   // Team Member Management
   users: User[];
@@ -106,6 +108,23 @@ interface AppContextType {
   setIsWebhookSimulatorOpen: (open: boolean) => void;
   isRepoSettingsModalOpen: boolean;
   setIsRepoSettingsModalOpen: (open: boolean) => void;
+
+  // Module 4: CI/CD Monitoring
+  workflowRuns: WorkflowRun[];
+  selectedRunForLogs: WorkflowRun | null;
+  setSelectedRunForLogs: (run: WorkflowRun | null) => void;
+  isDispatchModalOpen: boolean;
+  setIsDispatchModalOpen: (open: boolean) => void;
+  dispatchWorkflow: (options: {
+    workflowName: string;
+    branch: string;
+    runTests?: boolean;
+    verbose?: boolean;
+  }) => void;
+  cancelWorkflowRun: (runId: string) => void;
+  rerunWorkflowRun: (runId: string) => void;
+  isFetchingWorkflows: boolean;
+  fetchWorkflowRuns: () => Promise<void>;
 
   activities: ActivityItem[];
   
@@ -179,7 +198,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => !!getStoredSession());
 
   const [currentView, setCurrentView] = useState<'hub' | 'workspace'>('hub');
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'kanban' | 'issues' | 'team' | 'github'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'kanban' | 'issues' | 'team' | 'github' | 'cicd'>('dashboard');
   
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
   const [issues, setIssues] = useState<Issue[]>(initialIssues);
@@ -198,6 +217,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isSyncingGitHub, setIsSyncingGitHub] = useState(false);
   const [githubRateLimit, setGithubRateLimit] = useState<GitHubRateLimitInfo | null>(null);
   const [userPublicRepos, setUserPublicRepos] = useState<UserPublicRepo[]>([]);
+
+  // Module 4: CI/CD Monitoring State
+  const [workflowRuns, setWorkflowRuns] = useState<WorkflowRun[]>(mockWorkflowRuns);
+  const [selectedRunForLogs, setSelectedRunForLogs] = useState<WorkflowRun | null>(null);
+  const [isDispatchModalOpen, setIsDispatchModalOpen] = useState(false);
+  const [isFetchingWorkflows, setIsFetchingWorkflows] = useState(false);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
@@ -869,6 +894,55 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
       }, ...prev]);
     } else {
+      const nextRunNum = Math.max(100, ...workflowRuns.map(r => r.runNumber)) + 1;
+      const simRunId = `run-sim-${Date.now()}`;
+      const newSimRun: WorkflowRun = {
+        id: simRunId,
+        runNumber: nextRunNum,
+        projectId: activeProject.id,
+        name: 'CI / Build & Integration Tests',
+        workflowFileName: 'ci.yml',
+        status: 'success',
+        event: 'workflow_run',
+        branch: 'main',
+        commitSha: '5fe7edf',
+        commitMessage: 'till module 3',
+        authorName: 'GitHub Actions [bot]',
+        authorAvatar: 'https://images.unsplash.com/photo-1618401471353-b98aedd04e11?w=150&auto=format&fit=crop&q=80',
+        githubUsername: 'github-actions[bot]',
+        duration: '1m 02s',
+        durationSeconds: 62,
+        startedAt: time,
+        completedAt: time,
+        jobs: [
+          {
+            id: `job-sim-${nextRunNum}`,
+            name: 'Build and Test Matrix',
+            runner: 'ubuntu-latest',
+            status: 'completed',
+            duration: '1m 02s',
+            steps: [
+              { name: 'Runner environment init', status: 'completed', durationSeconds: 6, logs: ['[INFO] GitHub Actions runner initialized.'] },
+              { name: 'Checkout main', status: 'completed', durationSeconds: 4, logs: ['[INFO] Checked out repository at 5fe7edf.'] },
+              { name: 'Install dependencies (npm ci)', status: 'completed', durationSeconds: 14, logs: ['$ npm ci', 'added 28 packages'] },
+              { name: 'Run test suite (vitest)', status: 'completed', durationSeconds: 38, logs: ['$ vitest run', '✓ 48 tests passed (100% green)'] }
+            ]
+          }
+        ],
+        testOutcome: {
+          total: 48,
+          passed: 48,
+          failed: 0,
+          skipped: 0,
+          duration: '18.4s',
+          coveragePercent: 94.2
+        },
+        htmlUrl: `https://github.com/meghana922007/devflow_fsd/actions/runs/${nextRunNum}`,
+        isLive: true
+      };
+
+      setWorkflowRuns(prev => [newSimRun, ...prev]);
+
       setWebhookEvents(prev => [{
         id: `wh-${Date.now()}`,
         projectId: activeProject.id,
@@ -877,13 +951,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         sender: 'github-actions[bot]',
         senderAvatar: 'https://images.unsplash.com/photo-1618401471353-b98aedd04e11?w=150&auto=format&fit=crop&q=80',
         timestamp: time,
-        summary: 'GitHub Actions CI workflow "E2E Integration Tests" passed (14/14 suites green)',
+        summary: `GitHub Actions CI workflow #${nextRunNum} passed (48/48 tests green)`,
         status: 'delivered',
         payload: {
-          workflow: 'E2E Integration Tests',
+          workflow: 'CI / Build & Integration Tests',
           conclusion: 'success',
           duration_seconds: 62,
-          branch: 'main'
+          branch: 'main',
+          run_number: nextRunNum
         }
       }, ...prev]);
     }
@@ -1017,6 +1092,247 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setRepoSettings(prev => ({ ...prev, ...settings }));
   };
 
+  const dispatchWorkflow = (options: {
+    workflowName: string;
+    branch: string;
+    runTests?: boolean;
+    verbose?: boolean;
+  }) => {
+    const nextRunNum = Math.max(100, ...workflowRuns.map(r => r.runNumber)) + 1;
+    const runId = `run-dispatch-${Date.now()}`;
+    const branchCommits = commits.filter(c => c.branch === options.branch);
+    const headSha = branchCommits[0]?.id || '5fe7edf';
+    const commitMsg = branchCommits[0]?.message || `Manual workflow dispatch on ${options.branch}`;
+
+    const newRun: WorkflowRun = {
+      id: runId,
+      runNumber: nextRunNum,
+      projectId: activeProject.id,
+      name: options.workflowName,
+      workflowFileName: options.workflowName.toLowerCase().includes('docker') ? 'docker.yml' : 'ci.yml',
+      status: 'in_progress',
+      event: 'workflow_dispatch',
+      branch: options.branch,
+      commitSha: headSha,
+      commitMessage: commitMsg,
+      authorName: currentUser?.name || 'Meghana Pinikeshi',
+      authorAvatar: currentUser?.avatar || mockUsers[1].avatar,
+      githubUsername: currentUser?.githubUsername || 'meghana922007',
+      duration: 'Running (0s)',
+      durationSeconds: 0,
+      startedAt: 'Just now',
+      jobs: [
+        {
+          id: `job-${nextRunNum}-1`,
+          name: 'Build, Lint & Test Pipeline',
+          runner: 'ubuntu-latest',
+          status: 'in_progress',
+          duration: 'Running...',
+          steps: [
+            {
+              name: 'Set up runner & Node.js 22',
+              status: 'completed',
+              durationSeconds: 4,
+              logs: [
+                '[INFO] Initializing GitHub Actions runner (ubuntu-24.04)',
+                `[INFO] Triggered via workflow_dispatch by @${currentUser?.githubUsername || 'meghana922007'}`,
+                '[SUCCESS] Runner ready.'
+              ]
+            },
+            {
+              name: 'Checkout repository',
+              status: 'completed',
+              durationSeconds: 3,
+              logs: [
+                `[INFO] Checking out ${options.branch} (${headSha})`,
+                '[SUCCESS] Repository checked out.'
+              ]
+            },
+            {
+              name: 'Install dependencies (npm ci)',
+              status: 'completed',
+              durationSeconds: 5,
+              logs: [
+                '$ npm ci',
+                'added 28 packages in 0.9s',
+                '[SUCCESS] Dependencies installed.'
+              ]
+            },
+            {
+              name: 'Execute lint & typecheck',
+              status: 'in_progress',
+              durationSeconds: 3,
+              logs: [
+                '$ npx oxlint',
+                'oxlint: 0 errors, 0 warnings',
+                '$ tsc -b',
+                'TypeScript compilation passed.'
+              ]
+            },
+            {
+              name: 'Run unit & component test matrix',
+              status: 'queued',
+              durationSeconds: 0,
+              logs: [
+                '$ vitest run --coverage',
+                'Running 48 test suites across project modules...'
+              ]
+            }
+          ]
+        }
+      ],
+      testOutcome: {
+        total: 48,
+        passed: 48,
+        failed: 0,
+        skipped: 0,
+        duration: '14.8s',
+        coveragePercent: 94.2
+      },
+      artifacts: [
+        { name: 'devflow-dist-bundle.zip', size: '484 KB' }
+      ],
+      htmlUrl: `https://github.com/meghana922007/devflow_fsd/actions/runs/${nextRunNum}`,
+      isLive: true
+    };
+
+    setWorkflowRuns(prev => [newRun, ...prev]);
+
+    setActivities(acts => [{
+      id: 'act-' + Date.now(),
+      type: 'github_push',
+      title: `triggered workflow "${options.workflowName}" on ${options.branch}`,
+      timestamp: 'Just now',
+      user: currentUser?.name || 'Meghana Pinikeshi',
+      avatar: currentUser?.avatar || mockUsers[1].avatar
+    }, ...acts]);
+
+    setWebhookEvents(prev => [{
+      id: `wh-${Date.now()}`,
+      projectId: activeProject.id,
+      event: 'workflow_run',
+      action: 'requested',
+      sender: currentUser?.githubUsername || 'meghana_codes',
+      senderAvatar: currentUser?.avatar || mockUsers[1].avatar,
+      timestamp: 'Just now',
+      summary: `Workflow "${options.workflowName}" #${nextRunNum} queued on ${options.branch}`,
+      status: 'delivered',
+      payload: {
+        action: 'requested',
+        workflow_run: {
+          id: newRun.id,
+          name: options.workflowName,
+          head_branch: options.branch,
+          event: 'workflow_dispatch'
+        }
+      }
+    }, ...prev]);
+  };
+
+  const cancelWorkflowRun = (runId: string) => {
+    setWorkflowRuns(prev => prev.map(r => r.id === runId ? {
+      ...r,
+      status: 'cancelled',
+      duration: `${r.durationSeconds}s (Cancelled)`,
+      completedAt: 'Just now'
+    } : r));
+  };
+
+  const rerunWorkflowRun = (runId: string) => {
+    setWorkflowRuns(prev => prev.map(r => {
+      if (r.id !== runId) return r;
+      return {
+        ...r,
+        status: 'in_progress',
+        duration: 'Running (0s)',
+        durationSeconds: 0,
+        startedAt: 'Just now',
+        completedAt: undefined,
+        jobs: r.jobs.map(j => ({
+          ...j,
+          status: 'in_progress',
+          duration: 'Running...',
+          steps: j.steps.map((s, idx) => ({
+            ...s,
+            status: idx === 0 ? 'completed' : idx === 1 ? 'in_progress' : 'queued'
+          }))
+        }))
+      };
+    }));
+  };
+
+  const fetchWorkflowRuns = async () => {
+    const repoParsed = parseGitHubRepo(activeProject.gitRepo || repoSettings.repoUrl);
+    if (!repoParsed) return;
+    setIsFetchingWorkflows(true);
+    try {
+      const runs = await fetchGitHubWorkflowRuns(repoParsed.owner, repoParsed.repo, activeProject.id, undefined, true);
+      if (runs && runs.length > 0) {
+        setWorkflowRuns(runs);
+      }
+    } catch (e) {
+      console.warn('Could not fetch GitHub Actions runs', e);
+    } finally {
+      setIsFetchingWorkflows(false);
+    }
+  };
+
+  // Live simulation ticker for in-progress workflow runs
+  useEffect(() => {
+    const hasRunning = workflowRuns.some(r => r.status === 'in_progress');
+    if (!hasRunning) return;
+
+    const interval = setInterval(() => {
+      setWorkflowRuns(prev => prev.map(run => {
+        if (run.status !== 'in_progress') return run;
+        const nextSec = run.durationSeconds + 1;
+
+        if (nextSec >= 16 && run.id.startsWith('run-dispatch-')) {
+          const completedJobs = run.jobs.map(j => ({
+            ...j,
+            status: 'completed' as const,
+            duration: `${nextSec}s`,
+            steps: j.steps.map(s => ({
+              ...s,
+              status: 'completed' as const,
+              logs: [...s.logs, `✓ Completed successfully in ${s.durationSeconds || 3}s.`]
+            }))
+          }));
+
+          setPullRequests(prs => prs.map(p => p.sourceBranch === run.branch && p.ciStatus === 'pending' ? { ...p, ciStatus: 'success' } : p));
+
+          return {
+            ...run,
+            status: 'success',
+            duration: `${nextSec}s`,
+            durationSeconds: nextSec,
+            completedAt: 'Just now',
+            jobs: completedJobs,
+            testOutcome: {
+              total: 48,
+              passed: 48,
+              failed: 0,
+              skipped: 0,
+              duration: '14.8s',
+              coveragePercent: 94.2
+            }
+          };
+        }
+
+        const mins = Math.floor(nextSec / 60);
+        const secs = nextSec % 60;
+        const durStr = mins > 0 ? `Running (${mins}m ${secs}s)` : `Running (${secs}s)`;
+        return {
+          ...run,
+          durationSeconds: nextSec,
+          duration: durStr
+        };
+      }));
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [workflowRuns]);
+
   // Auto-sync live repo on initial mount, project switch, window focus, & interval
   useEffect(() => {
     syncRepoWithGitHub(undefined, false);
@@ -1097,6 +1413,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setIsWebhookSimulatorOpen,
       isRepoSettingsModalOpen,
       setIsRepoSettingsModalOpen,
+      // Module 4: CI/CD Monitoring
+      workflowRuns,
+      selectedRunForLogs,
+      setSelectedRunForLogs,
+      isDispatchModalOpen,
+      setIsDispatchModalOpen,
+      dispatchWorkflow,
+      cancelWorkflowRun,
+      rerunWorkflowRun,
+      isFetchingWorkflows,
+      fetchWorkflowRuns,
       activities,
       searchQuery,
       setSearchQuery,

@@ -1,10 +1,9 @@
 import React from 'react';
 import { useApp } from '../context/AppContext';
-import { Kanban, Bug, CheckCircle2, ArrowUpRight, Activity, Users } from 'lucide-react';
-import { mockUsers } from '../data/mockData';
+import { Kanban, Bug, CheckCircle2, ArrowUpRight, Activity, Cpu } from 'lucide-react';
 
 export const DashboardOverview: React.FC = () => {
-  const { tasks, issues, activities, activeProject, setActiveTab } = useApp();
+  const { tasks, issues, activities, activeProject, setActiveTab, workflowRuns } = useApp();
 
   const projectTasks = tasks.filter(t => t.projectId === activeProject.id);
   const projectIssues = issues.filter(i => i.projectId === activeProject.id);
@@ -20,6 +19,11 @@ export const DashboardOverview: React.FC = () => {
   const criticalBugs = projectIssues.filter(i => i.severity === 'critical' || i.severity === 'blocker');
   const resolvedBugs = projectIssues.filter(i => i.status === 'resolved' || i.status === 'closed');
 
+  const projectRuns = workflowRuns.filter(r => r.projectId === activeProject.id || !r.projectId);
+  const passedPipelines = projectRuns.filter(r => r.status === 'success').length;
+  const activePipelines = projectRuns.filter(r => r.status === 'in_progress').length;
+  const passRate = projectRuns.length > 0 ? Math.round((passedPipelines / projectRuns.length) * 100) : 100;
+
   return (
     <div style={{ padding: '24px 32px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
       {/* Top Banner - Solid Color */}
@@ -31,7 +35,9 @@ export const DashboardOverview: React.FC = () => {
         boxShadow: '0 8px 24px rgba(43, 103, 119, 0.25)',
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'space-between'
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '16px'
       }}>
         <div>
           <span style={{ fontSize: '0.78rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', backgroundColor: 'rgba(255,255,255,0.2)', padding: '4px 12px', borderRadius: 'var(--radius-pill)' }}>
@@ -41,11 +47,11 @@ export const DashboardOverview: React.FC = () => {
             Welcome back to {activeProject.name}
           </h2>
           <p style={{ fontSize: '0.9rem', opacity: 0.9 }}>
-            Modules 1 & 2 operational. {inProgressCount} tasks currently in progress, {openBugs.length} open bugs tracked.
+            Modules 1, 2, 3 & 4 operational. {inProgressCount} tasks in progress, {openBugs.length} bugs tracked, {passRate}% CI/CD pass rate.
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '12px' }}>
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
           <button
             onClick={() => setActiveTab('kanban')}
             style={{
@@ -79,6 +85,23 @@ export const DashboardOverview: React.FC = () => {
             }}
           >
             <Bug size={16} /> Bug Tracker <ArrowUpRight size={14} />
+          </button>
+          <button
+            onClick={() => setActiveTab('cicd')}
+            style={{
+              backgroundColor: 'rgba(255,255,255,0.2)',
+              color: 'white',
+              border: '1px solid rgba(255,255,255,0.4)',
+              padding: '10px 18px',
+              borderRadius: 'var(--radius-pill)',
+              fontWeight: 700,
+              fontSize: '0.88rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+          >
+            <Cpu size={16} /> CI/CD Pipelines <ArrowUpRight size={14} />
           </button>
         </div>
       </div>
@@ -130,18 +153,18 @@ export const DashboardOverview: React.FC = () => {
           </div>
         </div>
 
-        <div className="pastel-card" style={{ padding: '20px', backgroundColor: '#F5F2FF', border: '1px solid var(--pastel-lavender)' }}>
+        <div className="pastel-card" style={{ padding: '20px', backgroundColor: '#F0FDF4', border: '1px solid #bbf7d0' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--pastel-lavender-dark)', textTransform: 'uppercase' }}>
-              TEAM CAPACITY
+            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#16a34a', textTransform: 'uppercase' }}>
+              MODULE 4: CI/CD HEALTH
             </span>
-            <Users size={18} color="var(--pastel-lavender-dark)" />
+            <Cpu size={18} color="#16a34a" />
           </div>
-          <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-main)' }}>
-            {mockUsers.length} Devs
+          <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#15803d' }}>
+            {passRate}%
           </div>
           <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-            Assigned to tasks & bugs
+            {passedPipelines}/{projectRuns.length} Passed {activePipelines > 0 ? `(${activePipelines} running)` : ''}
           </div>
         </div>
       </div>

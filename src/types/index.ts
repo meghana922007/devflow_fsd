@@ -183,3 +183,64 @@ export interface RepoSettings {
   isLiveSync?: boolean;
   syncError?: string | null;
 }
+
+// Module 4: CI/CD Monitoring
+export type WorkflowStatus = 'success' | 'failure' | 'in_progress' | 'queued' | 'cancelled';
+
+export interface WorkflowStep {
+  name: string;
+  status: 'completed' | 'in_progress' | 'queued' | 'failed' | 'skipped';
+  durationSeconds: number;
+  logs: string[];
+}
+
+export interface WorkflowJob {
+  id: string;
+  name: string;
+  runner: string;
+  status: 'completed' | 'in_progress' | 'queued' | 'failed' | 'cancelled';
+  duration: string;
+  steps: WorkflowStep[];
+}
+
+export interface TestSuiteOutcome {
+  total: number;
+  passed: number;
+  failed: number;
+  skipped: number;
+  duration: string;
+  coveragePercent?: number;
+  failedTestDetails?: string[];
+}
+
+export interface WorkflowArtifact {
+  name: string;
+  size: string;
+  downloadUrl?: string;
+}
+
+export interface WorkflowRun {
+  id: string;
+  runNumber: number;
+  projectId: string;
+  name: string;
+  workflowFileName: string;
+  status: WorkflowStatus;
+  event: 'push' | 'pull_request' | 'workflow_dispatch' | 'schedule' | 'workflow_run';
+  branch: string;
+  commitSha: string;
+  commitMessage: string;
+  authorName: string;
+  authorAvatar: string;
+  githubUsername: string;
+  duration: string;
+  durationSeconds: number;
+  startedAt: string;
+  completedAt?: string;
+  jobs: WorkflowJob[];
+  testOutcome?: TestSuiteOutcome;
+  artifacts?: WorkflowArtifact[];
+  htmlUrl?: string;
+  isLive?: boolean;
+  pullRequestNumber?: number;
+}

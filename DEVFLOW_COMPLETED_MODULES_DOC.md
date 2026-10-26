@@ -1,4 +1,4 @@
-# 🌸 DevFlow — Completed Modules 1, 2 & 3 Technical Summary
+# 🌸 DevFlow — Completed Modules 1, 2, 3 & 4 Technical Summary
 
 ---
 
@@ -9,7 +9,7 @@ DevFlow is built using:
 - **Styling & Aesthetics**: Professional 5-color palette (Deep Teal `#2b6777`, Slate Ice Blue `#c8d8e4`, Pure White `#ffffff`, Light Neutral Gray `#f2f2f2`, Emerald Mint `#52ab98`). Zero linear gradients, solid colors only, flat glassmorphic containers.
 - **Typography**: Google Fonts `'Plus Jakarta Sans'` & `'Outfit'`.
 - **Icons**: Lucide React (`lucide-react`).
-- **State Architecture**: Reactive React Context API (`AppContext.tsx`) managing multi-project workspaces, Kanban tasks, bug tracking pipelines, team rosters, GitHub PRs, commits, branches, and live webhook event ingestion.
+- **State Architecture**: Reactive React Context API (`AppContext.tsx`) managing multi-project workspaces, Kanban tasks, bug tracking pipelines, team rosters, GitHub PRs, commits, branches, CI/CD pipeline runs, and live webhook event ingestion.
 
 ---
 
@@ -53,7 +53,6 @@ DevFlow is built using:
     - `902fe86` — `feat: DevFlow Module 1 - Core Workspace, Auth, Kanban Board, Socket.IO Realtime Sync, and Analytics`
   - Real author avatar, timestamp, branch badge, and additions/deletions diff counts.
   - **1-Click "GitHub ↗" Link**: Every commit card has a direct link opening that exact commit page on GitHub.com (`https://github.com/meghana922007/devflow/commit/{sha}`).
-  - **Live GitHub Badge**: Visual indicator differentiating live GitHub commits from local commits.
   - Branch selector filter and live search by SHA, commit message, or author.
 - **Interactive Pull Requests Board (`PullRequestList.tsx`)**:
   - Displays live PRs from GitHub combined with interactive PR review pipelines.
@@ -61,21 +60,38 @@ DevFlow is built using:
   - Review status indicators (`Approved 👍`, `Review Required ⏱️`, `Changes Requested ⚠️`).
   - Automated CI check status pill (`CI Passed ✅`, `CI Running ⏳`).
   - **One-Click Merge PR**: Merging automatically transitions the linked Module 1 task to **"Done"**, appends a merge commit to the stream, and dispatches a webhook delivery!
-  - Direct "GitHub ↗" button on live PR cards.
 - **Unified Code Diff Viewer Modal (`DiffModal.tsx`)**:
   - Full code diff inspection displaying additions (`+` lines in soft emerald green `#e6f6f3`), deletions (`-` lines in soft slate rose), hunk markers (`@@`), and line numbers.
-  - Direct merge capability from inside the diff viewer.
 - **Repository Branches View (`BranchesView.tsx`)**:
   - Lists branches fetched from GitHub with default branch protection indicators.
-  - Direct link to inspect each branch on GitHub (`https://github.com/meghana922007/devflow/tree/{branch}`).
 - **Repository & Webhook Configuration (`RepoSettingsModal.tsx`)**:
-  - **Connected Profile Banner**: Displays Meghana Pinikeshi (`@meghana922007`) with her real avatar.
-  - **Quick Repository Switcher**: One-click switcher across Meghana's repositories (`devflow`, `ThinkTank`, `Agentic-RBAC`, `sellersense`, etc.).
-  - **Test Live API Connection**: Live tester pinging GitHub REST API and displaying HTTP 200 OK status, stars, forks, and rate limit quota.
-  - **Personal Access Token (PAT)**: Optional input to increase API quota to 5,000 req/hr and access private repositories.
+  - Profile banner, quick repository switcher, live ping tester, and PAT configuration.
 - **Live Webhook Ingestion Log (`WebhookLogView.tsx`) & Simulator (`WebhookSimulatorModal.tsx`)**:
-  - Captures and displays HTTP POST webhook deliveries (`push`, `pull_request`, `workflow_run`).
-  - Expandable, formatted JSON payload viewer with copy-to-clipboard functionality.
+  - Ingests, simulates, and logs `push`, `pull_request`, and `workflow_run` events with formatted JSON payloads.
+
+### Module 4: CI/CD Pipeline Monitoring & Real-Time Build Diagnostics
+- **Automated Workflow Pipeline Dashboard (`CICDHub.tsx`)**:
+  - Top Telemetry Banner: Total Pipeline Runs, Build Pass Rate %, Average Run Duration (`1m 18s`), and Live Active Pipelines Running badge.
+  - Granular Filter & Search Bar: Filter by execution status (`All`, `Passed ✅`, `Failed ❌`, `Running ⏳`), Workflow Name (`CI / Build, Lint & Test Suite`, `Docker Container Package`, `Playwright E2E Regression`, `Security CodeQL Deep Scan`), and Git Branch.
+- **Visual Pipeline Execution DAG (`WorkflowGraph.tsx`)**:
+  - Interactive Directed Acyclic Graph displaying job execution sequences (`Setup & Dependencies` ──► `Code Quality & Oxlint` ──► `TypeScript & Production Build` ──► `Unit & Component Test Matrix`).
+  - Pulsing blue status indicator on active running jobs, green checkmarks on passed jobs, and red alert tags on failed jobs.
+  - Step-level mini progress bars showing progress across all job stages.
+- **Real-Time Interactive ANSI Terminal Console (`BuildLogModal.tsx`)**:
+  - Dark-mode developer terminal (`#0d1117` / `#161b22`) styled with line numbers, colored status tags (`[INFO]`, `[SUCCESS]`, `[ERROR]`, `[WARN]`), and command prompts (`$ npm run build`).
+  - Job & Step Explorer sidebar with individual step durations.
+  - Live log search with match counter.
+  - 1-click "Copy All Logs" and "Download .log File" buttons.
+  - Direct link to inspect run on GitHub Actions (`https://github.com/meghana922007/devflow_fsd/actions/runs/...`).
+- **Interactive AI Root Cause Diagnostic & Fix Engine**:
+  - Embedded AI failure explainer (connecting Module 4 with Module 5).
+  - Automatically parses failed test assertions (e.g. `AssertionError: expected 'review' to equal 'in_progress' in src/tests/kanban.test.ts:74`).
+  - Provides plain English explanation of the root cause and a proposed code diff with a 1-click "Copy Code Fix" button.
+- **Manual Pipeline Dispatch & Live Real-Time Simulator (`DispatchWorkflowModal.tsx`)**:
+  - Modal allowing engineers to dispatch any workflow on any branch with custom parameters (run tests, coverage reports, verbose logging).
+  - Triggers a real-time running simulation with active elapsed second ticker, live running job animation, and automated transition to success/completed.
+- **Repository-Level GitHub Actions Workflow (`.github/workflows/ci.yml`)**:
+  - Real GitHub Actions YAML workflow automating checkout, Node 22 setup, npm ci, oxlint, and vite build on push/PR to `main`.
 
 ---
 
