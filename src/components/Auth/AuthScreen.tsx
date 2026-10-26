@@ -4,7 +4,6 @@ import {
   Sparkles,
   ArrowRight,
   FolderGit2,
-  Check,
   Lock,
   Mail,
   User as UserIcon,
@@ -16,7 +15,7 @@ export const AuthScreen: React.FC = () => {
   const { login, loginWithGithub, signup } = useApp();
 
   const [mode, setMode] = useState<'login' | 'signup'>('login');
-  
+
   // Login State
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -54,432 +53,458 @@ export const AuthScreen: React.FC = () => {
     }
   };
 
+  // Dev utility — logic preserved, card hidden from UI
   const fillQuickTest = (testEmail: string, testPass: string) => {
     setEmail(testEmail);
     setPassword(testPass);
     setErrorMsg(null);
   };
+  void fillQuickTest; // suppress unused warning
+
+  const inputStyle: React.CSSProperties = {
+    width: '100%',
+    padding: '11px 14px 11px 40px',
+    background: '#080b16',
+    border: '1px solid rgba(0,245,255,0.25)',
+    color: '#e8f4fd',
+    fontSize: '0.88rem',
+    fontFamily: "'Share Tech Mono', monospace",
+    outline: 'none',
+    borderRadius: '3px',
+    transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+  };
+
+  const labelStyle: React.CSSProperties = {
+    display: 'block',
+    fontSize: '0.65rem',
+    fontFamily: "'Press Start 2P', monospace",
+    color: '#4a7c8e',
+    marginBottom: '7px',
+    letterSpacing: '0.04em',
+  };
+
+  const iconStyle: React.CSSProperties = {
+    position: 'absolute',
+    left: '13px',
+    top: '50%',
+    transform: 'translateY(-50%)',
+    color: '#4a7c8e',
+  };
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      backgroundColor: '#f2f2f2',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '24px'
-    }}>
-      <div className="pastel-card animate-modal-pop" style={{
-        width: '100%',
-        maxWidth: '1020px',
-        display: 'grid',
-        gridTemplateColumns: '1fr 1.1fr',
-        borderRadius: 'var(--radius-lg)',
-        overflow: 'hidden',
-        boxShadow: '0 20px 50px rgba(43, 103, 119, 0.15)',
-        border: '1px solid #c8d8e4',
-        backgroundColor: '#ffffff'
-      }}>
-        {/* Left Side: Deep Teal Professional Branding Banner */}
-        <div style={{
-          backgroundColor: '#2b6777',
-          padding: '44px 36px',
-          color: '#ffffff',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'space-between',
-          position: 'relative'
-        }}>
-          <div>
+    <div
+      className="scanline-bg"
+      style={{
+        minHeight: '100vh',
+        backgroundColor: '#0a0e1a',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '24px',
+        position: 'relative',
+      }}
+    >
+      {/* Ambient background blobs */}
+      <div style={{
+        position: 'fixed', top: '10%', left: '5%',
+        width: '320px', height: '320px',
+        borderRadius: '50%',
+        background: 'radial-gradient(circle, rgba(0,245,255,0.06) 0%, transparent 70%)',
+        pointerEvents: 'none',
+      }} />
+      <div style={{
+        position: 'fixed', bottom: '15%', right: '8%',
+        width: '260px', height: '260px',
+        borderRadius: '50%',
+        background: 'radial-gradient(circle, rgba(255,0,255,0.05) 0%, transparent 70%)',
+        pointerEvents: 'none',
+      }} />
+
+      <div
+        className="animate-modal-pop"
+        style={{
+          width: '100%',
+          maxWidth: '1000px',
+          display: 'grid',
+          gridTemplateColumns: '1fr 1.1fr',
+          borderRadius: '6px',
+          overflow: 'hidden',
+          border: '1px solid rgba(0,245,255,0.3)',
+          boxShadow: '0 0 60px rgba(0,245,255,0.08), 0 0 120px rgba(0,245,255,0.04)',
+          position: 'relative',
+          zIndex: 2,
+        }}
+      >
+        {/* ===== LEFT PANEL: Branding ===== */}
+        <div
+          style={{
+            background: 'linear-gradient(160deg, #080b16 0%, #0d1224 60%, #0a0e1a 100%)',
+            padding: '52px 40px',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            borderRight: '1px solid rgba(0,245,255,0.15)',
+            position: 'relative',
+            overflow: 'hidden',
+          }}
+        >
+          {/* Decorative pixel grid lines */}
+          <div style={{
+            position: 'absolute',
+            inset: 0,
+            backgroundImage: `
+              linear-gradient(rgba(0,245,255,0.04) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(0,245,255,0.04) 1px, transparent 1px)
+            `,
+            backgroundSize: '32px 32px',
+            pointerEvents: 'none',
+          }} />
+
+          <div style={{ position: 'relative', zIndex: 1 }}>
+            {/* Logo mark */}
             <div style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-              backgroundColor: 'rgba(255,255,255,0.18)',
-              padding: '6px 14px',
-              borderRadius: 'var(--radius-pill)',
-              fontSize: '0.78rem',
-              fontWeight: 800,
-              letterSpacing: '0.06em',
-              marginBottom: '20px'
+              width: '52px', height: '52px',
+              background: 'rgba(0,245,255,0.08)',
+              border: '2px solid rgba(0,245,255,0.5)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              marginBottom: '28px',
+              boxShadow: '0 0 20px rgba(0,245,255,0.2)',
             }}>
-              <Sparkles size={15} /> DEVFLOW WORKSPACE AUTHENTICATION
+              <Sparkles size={24} color="#00f5ff" />
             </div>
 
-            <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '2.1rem', fontWeight: 800, lineHeight: 1.2, marginBottom: '16px' }}>
-              Unified Developer Intelligence Platform
+            <h1
+              className="pixel-glow"
+              style={{
+                fontFamily: "'Press Start 2P', monospace",
+                fontSize: '1.5rem',
+                color: '#00f5ff',
+                lineHeight: 1.4,
+                marginBottom: '20px',
+                letterSpacing: '0.02em',
+              }}
+            >
+              DEV<br />FLOW
             </h1>
 
-            <p style={{ fontSize: '0.92rem', opacity: 0.92, lineHeight: 1.55, marginBottom: '28px' }}>
-              Eliminate context switching. Connect tasks, bug reports, GitHub PRs, commits, and webhook automation into one cohesive workspace.
+            <p style={{
+              fontFamily: "'Share Tech Mono', monospace",
+              fontSize: '0.85rem',
+              color: '#4a7c8e',
+              lineHeight: 1.7,
+              marginBottom: '36px',
+              maxWidth: '280px',
+            }}>
+              Unified developer intelligence platform. Kanban boards, issue tracking, GitHub integration & CI/CD pipelines in one workspace.
             </p>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', fontSize: '0.85rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <Check size={16} color="#52ab98" /> <span>Module 1: 4-Column Grid Kanban with 3D Physics</span>
+            {/* Pixel-art stat bars */}
+            {[
+              { label: 'TASKS', color: '#00f5ff', pct: 78 },
+              { label: 'BUGS', color: '#ff2d55', pct: 42 },
+              { label: 'PIPELINES', color: '#39ff14', pct: 91 },
+            ].map(({ label, color, pct }) => (
+              <div key={label} style={{ marginBottom: '12px' }}>
+                <div style={{
+                  display: 'flex', justifyContent: 'space-between',
+                  fontFamily: "'Press Start 2P', monospace",
+                  fontSize: '0.5rem',
+                  color: '#4a7c8e',
+                  marginBottom: '5px',
+                }}>
+                  <span>{label}</span>
+                  <span style={{ color }}>{pct}%</span>
+                </div>
+                <div style={{
+                  height: '8px',
+                  background: 'rgba(255,255,255,0.06)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                }}>
+                  <div style={{
+                    height: '100%',
+                    width: `${pct}%`,
+                    background: color,
+                    boxShadow: `0 0 8px ${color}`,
+                  }} />
+                </div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <Check size={16} color="#52ab98" /> <span>Module 2: Defect Lifecycle & Telemetry Tracker</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <Check size={16} color="#52ab98" /> <span>Module 3: GitHub PRs, Code Diffs & Webhooks</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <Check size={16} color="#52ab98" /> <span>Multi-Project Hub & Engineer Roster Management</span>
-              </div>
-            </div>
+            ))}
           </div>
 
-          {/* Seeded Testing Credentials Card */}
+          {/* Bottom version tag */}
           <div style={{
-            marginTop: '36px',
-            backgroundColor: 'rgba(255, 255, 255, 0.12)',
-            borderRadius: 'var(--radius-md)',
-            padding: '16px',
-            border: '1px solid rgba(255, 255, 255, 0.25)'
+            position: 'relative', zIndex: 1,
+            fontFamily: "'Press Start 2P', monospace",
+            fontSize: '0.45rem',
+            color: '#2a4a5a',
+            letterSpacing: '0.06em',
           }}>
-            <div style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#c8d8e4', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <KeyRound size={13} /> Demo Test Accounts (Click to Auto-Fill):
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <button
-                type="button"
-                onClick={() => fillQuickTest('meghana@devflow.io', 'devflow123')}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '6px 10px',
-                  borderRadius: 'var(--radius-sm)',
-                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                  color: '#ffffff',
-                  fontSize: '0.78rem',
-                  textAlign: 'left'
-                }}
-              >
-                <span><strong>Meghana</strong> (Full Stack Engineer)</span>
-                <code style={{ fontSize: '0.72rem', opacity: 0.9 }}>devflow123</code>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => fillQuickTest('admin@devflow.io', 'admin123')}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '6px 10px',
-                  borderRadius: 'var(--radius-sm)',
-                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                  color: '#ffffff',
-                  fontSize: '0.78rem',
-                  textAlign: 'left'
-                }}
-              >
-                <span><strong>Admin</strong> (Lead Architect)</span>
-                <code style={{ fontSize: '0.72rem', opacity: 0.9 }}>admin123</code>
-              </button>
-            </div>
+            SYS v2.0.0 &nbsp;|&nbsp; ALL SYSTEMS NOMINAL
           </div>
         </div>
 
-        {/* Right Side: Auth Forms */}
-        <div style={{ padding: '44px 38px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-          {/* Mode Switch Tabs */}
+        {/* ===== RIGHT PANEL: Forms ===== */}
+        <div style={{
+          background: '#0d1224',
+          padding: '48px 42px',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+        }}>
+          {/* Mode toggle */}
           <div style={{
             display: 'flex',
-            backgroundColor: '#f2f2f2',
-            padding: '4px',
-            borderRadius: 'var(--radius-pill)',
-            marginBottom: '24px'
+            background: '#080b16',
+            border: '1px solid rgba(0,245,255,0.2)',
+            borderRadius: '4px',
+            marginBottom: '30px',
+            overflow: 'hidden',
           }}>
-            <button
-              type="button"
-              onClick={() => { setMode('login'); setErrorMsg(null); }}
-              style={{
-                flex: 1,
-                padding: '9px 16px',
-                borderRadius: 'var(--radius-pill)',
-                fontSize: '0.86rem',
-                fontWeight: 700,
-                backgroundColor: mode === 'login' ? '#2b6777' : 'transparent',
-                color: mode === 'login' ? '#ffffff' : '#527982'
-              }}
-            >
-              Sign In
-            </button>
-            <button
-              type="button"
-              onClick={() => { setMode('signup'); setErrorMsg(null); }}
-              style={{
-                flex: 1,
-                padding: '9px 16px',
-                borderRadius: 'var(--radius-pill)',
-                fontSize: '0.86rem',
-                fontWeight: 700,
-                backgroundColor: mode === 'signup' ? '#2b6777' : 'transparent',
-                color: mode === 'signup' ? '#ffffff' : '#527982'
-              }}
-            >
-              Create Account
-            </button>
+            {(['login', 'signup'] as const).map((m) => (
+              <button
+                key={m}
+                type="button"
+                onClick={() => { setMode(m); setErrorMsg(null); }}
+                style={{
+                  flex: 1,
+                  padding: '10px 16px',
+                  fontFamily: "'Press Start 2P', monospace",
+                  fontSize: '0.5rem',
+                  letterSpacing: '0.04em',
+                  background: mode === m
+                    ? 'rgba(0,245,255,0.12)'
+                    : 'transparent',
+                  color: mode === m ? '#00f5ff' : '#2a4a5a',
+                  borderRight: m === 'login' ? '1px solid rgba(0,245,255,0.2)' : 'none',
+                  boxShadow: mode === m ? 'inset 0 0 12px rgba(0,245,255,0.08)' : 'none',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                {m === 'login' ? '[ SIGN IN ]' : '[ REGISTER ]'}
+              </button>
+            ))}
           </div>
 
-          {/* Error Banner */}
+          {/* Error banner */}
           {errorMsg && (
-            <div className="animate-fade-in" style={{
-              backgroundColor: '#fbecee',
-              border: '1px solid #c8d8e4',
-              borderRadius: 'var(--radius-sm)',
-              padding: '10px 14px',
-              color: '#881337',
-              fontSize: '0.82rem',
-              fontWeight: 600,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              marginBottom: '18px'
-            }}>
-              <AlertCircle size={16} />
-              <span>{errorMsg}</span>
+            <div
+              className="animate-fade-in"
+              style={{
+                background: 'rgba(255,45,85,0.1)',
+                border: '1px solid rgba(255,45,85,0.4)',
+                borderRadius: '3px',
+                padding: '10px 14px',
+                color: '#ff2d55',
+                fontSize: '0.78rem',
+                fontFamily: "'Share Tech Mono', monospace",
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                marginBottom: '20px',
+                boxShadow: '0 0 12px rgba(255,45,85,0.15)',
+              }}
+            >
+              <AlertCircle size={15} />
+              <span>&gt; ERR: {errorMsg}</span>
             </div>
           )}
 
-          {/* Form: Sign In */}
           {mode === 'login' ? (
-            <form onSubmit={handleLoginSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <form onSubmit={handleLoginSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '6px' }}>
-                  Work Email or GitHub Handle
-                </label>
+                <label style={labelStyle}>EMAIL / HANDLE</label>
                 <div style={{ position: 'relative' }}>
+                  <Mail size={15} style={iconStyle} />
                   <input
                     type="text"
                     required
-                    placeholder="e.g. meghana@devflow.io"
+                    placeholder="user@devflow.io"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '10px 14px 10px 38px',
-                      borderRadius: 'var(--radius-sm)',
-                      border: '1px solid var(--border-color)',
-                      backgroundColor: 'var(--bg-card)',
-                      fontSize: '0.88rem',
-                      outline: 'none'
+                    style={inputStyle}
+                    onFocus={(e) => {
+                      e.target.style.borderColor = 'rgba(0,245,255,0.7)';
+                      e.target.style.boxShadow = '0 0 12px rgba(0,245,255,0.2)';
+                    }}
+                    onBlur={(e) => {
+                      e.target.style.borderColor = 'rgba(0,245,255,0.25)';
+                      e.target.style.boxShadow = 'none';
                     }}
                   />
-                  <Mail size={16} color="var(--text-light)" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
                 </div>
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '6px' }}>
-                  Password
-                </label>
+                <label style={labelStyle}>PASSWORD</label>
                 <div style={{ position: 'relative' }}>
+                  <Lock size={15} style={iconStyle} />
                   <input
                     type="password"
                     required
-                    placeholder="Enter your password"
+                    placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '10px 14px 10px 38px',
-                      borderRadius: 'var(--radius-sm)',
-                      border: '1px solid var(--border-color)',
-                      backgroundColor: 'var(--bg-card)',
-                      fontSize: '0.88rem',
-                      outline: 'none'
+                    style={inputStyle}
+                    onFocus={(e) => {
+                      e.target.style.borderColor = 'rgba(0,245,255,0.7)';
+                      e.target.style.boxShadow = '0 0 12px rgba(0,245,255,0.2)';
+                    }}
+                    onBlur={(e) => {
+                      e.target.style.borderColor = 'rgba(0,245,255,0.25)';
+                      e.target.style.boxShadow = 'none';
                     }}
                   />
-                  <Lock size={16} color="var(--text-light)" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
                 </div>
               </div>
 
               <button
                 type="submit"
                 className="btn-primary"
-                style={{
-                  width: '100%',
-                  justifyContent: 'center',
-                  padding: '12px',
-                  fontSize: '0.92rem',
-                  marginTop: '8px'
-                }}
+                style={{ width: '100%', justifyContent: 'center', padding: '13px', marginTop: '6px', fontSize: '0.72rem' }}
               >
-                Sign In to Workspace <ArrowRight size={16} />
+                ENTER WORKSPACE <ArrowRight size={15} />
               </button>
 
               <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                margin: '8px 0',
-                color: 'var(--text-light)',
-                fontSize: '0.78rem'
+                display: 'flex', alignItems: 'center', gap: '12px',
+                color: '#2a4a5a', fontSize: '0.7rem',
+                fontFamily: "'Share Tech Mono', monospace",
               }}>
-                <div style={{ flex: 1, height: '1px', backgroundColor: 'var(--border-subtle)' }} />
+                <div style={{ flex: 1, height: '1px', background: 'rgba(0,245,255,0.1)' }} />
                 <span>OR</span>
-                <div style={{ flex: 1, height: '1px', backgroundColor: 'var(--border-subtle)' }} />
+                <div style={{ flex: 1, height: '1px', background: 'rgba(0,245,255,0.1)' }} />
               </div>
 
               <button
                 type="button"
                 onClick={loginWithGithub}
                 className="btn-secondary"
-                style={{
-                  width: '100%',
-                  justifyContent: 'center',
-                  padding: '11px',
-                  fontSize: '0.86rem',
-                  gap: '8px'
-                }}
+                style={{ width: '100%', justifyContent: 'center', padding: '12px', fontSize: '0.72rem' }}
               >
-                <FolderGit2 size={16} color="#2b6777" /> Continue with GitHub OAuth
+                <FolderGit2 size={15} /> CONTINUE WITH GITHUB
               </button>
             </form>
           ) : (
-            /* Form: Sign Up */
-            <form onSubmit={handleSignupSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <form onSubmit={handleSignupSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '4px' }}>
-                  Full Name *
-                </label>
+                <label style={labelStyle}>FULL NAME</label>
                 <div style={{ position: 'relative' }}>
+                  <UserIcon size={15} style={iconStyle} />
                   <input
                     type="text"
                     required
-                    placeholder="e.g. John Doe"
+                    placeholder="John Doe"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '9px 12px 9px 36px',
-                      borderRadius: 'var(--radius-sm)',
-                      border: '1px solid var(--border-color)',
-                      backgroundColor: 'var(--bg-card)',
-                      fontSize: '0.85rem',
-                      outline: 'none'
+                    style={inputStyle}
+                    onFocus={(e) => {
+                      e.target.style.borderColor = 'rgba(0,245,255,0.7)';
+                      e.target.style.boxShadow = '0 0 12px rgba(0,245,255,0.2)';
+                    }}
+                    onBlur={(e) => {
+                      e.target.style.borderColor = 'rgba(0,245,255,0.25)';
+                      e.target.style.boxShadow = 'none';
                     }}
                   />
-                  <UserIcon size={15} color="var(--text-light)" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
                 </div>
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '4px' }}>
-                  Work Email *
-                </label>
+                <label style={labelStyle}>WORK EMAIL</label>
                 <div style={{ position: 'relative' }}>
+                  <Mail size={15} style={iconStyle} />
                   <input
                     type="email"
                     required
-                    placeholder="e.g. john@devflow.io"
+                    placeholder="john@devflow.io"
                     value={signupEmail}
                     onChange={(e) => setSignupEmail(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '9px 12px 9px 36px',
-                      borderRadius: 'var(--radius-sm)',
-                      border: '1px solid var(--border-color)',
-                      backgroundColor: 'var(--bg-card)',
-                      fontSize: '0.85rem',
-                      outline: 'none'
+                    style={inputStyle}
+                    onFocus={(e) => {
+                      e.target.style.borderColor = 'rgba(0,245,255,0.7)';
+                      e.target.style.boxShadow = '0 0 12px rgba(0,245,255,0.2)';
+                    }}
+                    onBlur={(e) => {
+                      e.target.style.borderColor = 'rgba(0,245,255,0.25)';
+                      e.target.style.boxShadow = 'none';
                     }}
                   />
-                  <Mail size={15} color="var(--text-light)" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
                 </div>
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '4px' }}>
-                  Password * (Min 6 characters)
-                </label>
+                <label style={labelStyle}>PASSWORD (MIN 6)</label>
                 <div style={{ position: 'relative' }}>
+                  <Lock size={15} style={iconStyle} />
                   <input
                     type="password"
                     required
                     minLength={6}
-                    placeholder="Create a password"
+                    placeholder="••••••••"
                     value={signupPassword}
                     onChange={(e) => setSignupPassword(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '9px 12px 9px 36px',
-                      borderRadius: 'var(--radius-sm)',
-                      border: '1px solid var(--border-color)',
-                      backgroundColor: 'var(--bg-card)',
-                      fontSize: '0.85rem',
-                      outline: 'none'
+                    style={inputStyle}
+                    onFocus={(e) => {
+                      e.target.style.borderColor = 'rgba(0,245,255,0.7)';
+                      e.target.style.boxShadow = '0 0 12px rgba(0,245,255,0.2)';
+                    }}
+                    onBlur={(e) => {
+                      e.target.style.borderColor = 'rgba(0,245,255,0.25)';
+                      e.target.style.boxShadow = 'none';
                     }}
                   />
-                  <Lock size={15} color="var(--text-light)" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '4px' }}>
-                    Role
-                  </label>
+                  <label style={labelStyle}>ROLE</label>
                   <select
                     value={role}
                     onChange={(e) => setRole(e.target.value)}
                     style={{
-                      width: '100%',
-                      padding: '8px 10px',
-                      borderRadius: 'var(--radius-sm)',
-                      border: '1px solid var(--border-color)',
-                      backgroundColor: 'var(--bg-card)',
-                      fontSize: '0.82rem',
-                      outline: 'none'
+                      ...inputStyle,
+                      padding: '10px 10px',
+                      cursor: 'pointer',
                     }}
                   >
                     <option value="Lead Architect">Lead Architect</option>
                     <option value="Full Stack Engineer">Full Stack Engineer</option>
                     <option value="Backend Specialist">Backend Specialist</option>
-                    <option value="QA & DevOps Lead">QA & DevOps Lead</option>
+                    <option value="QA & DevOps Lead">QA &amp; DevOps Lead</option>
                     <option value="Product Manager">Product Manager</option>
                   </select>
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '4px' }}>
-                    GitHub Handle
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. jdoe_dev"
-                    value={githubUsername}
-                    onChange={(e) => setGithubUsername(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '8px 10px',
-                      borderRadius: 'var(--radius-sm)',
-                      border: '1px solid var(--border-color)',
-                      backgroundColor: 'var(--bg-card)',
-                      fontSize: '0.82rem',
-                      outline: 'none'
-                    }}
-                  />
+                  <label style={labelStyle}>GITHUB</label>
+                  <div style={{ position: 'relative' }}>
+                    <KeyRound size={13} style={iconStyle} />
+                    <input
+                      type="text"
+                      placeholder="@handle"
+                      value={githubUsername}
+                      onChange={(e) => setGithubUsername(e.target.value)}
+                      style={inputStyle}
+                      onFocus={(e) => {
+                        e.target.style.borderColor = 'rgba(0,245,255,0.7)';
+                        e.target.style.boxShadow = '0 0 12px rgba(0,245,255,0.2)';
+                      }}
+                      onBlur={(e) => {
+                        e.target.style.borderColor = 'rgba(0,245,255,0.25)';
+                        e.target.style.boxShadow = 'none';
+                      }}
+                    />
+                  </div>
                 </div>
               </div>
 
               <button
                 type="submit"
                 className="btn-primary"
-                style={{
-                  width: '100%',
-                  justifyContent: 'center',
-                  padding: '11px',
-                  fontSize: '0.88rem',
-                  marginTop: '6px'
-                }}
+                style={{ width: '100%', justifyContent: 'center', padding: '12px', marginTop: '4px', fontSize: '0.68rem' }}
               >
-                Register & Enter Workspace <ArrowRight size={16} />
+                REGISTER &amp; ENTER <ArrowRight size={14} />
               </button>
             </form>
           )}
