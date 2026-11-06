@@ -1,183 +1,82 @@
-# 🌸 DevFlow — Unified Developer Collaboration & Engineering Workflow Platform
+# DevFlowOne Workspace
 
-> **DevFlow** is a developer-centric collaboration platform that unites project management, task tracking, bug reporting, team member engineering profiles, and GitHub repository links into a single, pastel-aesthetic workspace.
+DevFlowOne is a unified developer workspace for project planning, task and issue tracking, GitHub activity, CI/CD visibility, and AI-assisted developer workflows. It uses a simple, responsive UI and persists core workspace data through an authenticated API.
 
----
+## Stack
 
-## 🎨 Visual Aesthetics & Design Philosophy
+- React 19, TypeScript, Vite, and CSS
+- Node.js, Express, Prisma, and PostgreSQL
+- Redis, BullMQ, and Socket.IO
+- GitHub API/webhooks and optional OpenAI API integration
+- Docker Compose for local services and production-style serving
 
-DevFlow is designed with a **Soft Pastel Aesthetic** to reduce cognitive fatigue and eliminate harsh neon blues.
+## Current capabilities
 
-### Color Palette Tokens
-* **Soft Lavender**: `#E8E5F6` / `#7C65C1` (Module 1 Tasks & Primary Accents)
-* **Dusty Rose**: `#FCE7F0` / `#E05A8D` (Module 2 Defects & Critical Badges)
-* **Sage / Mint Green**: `#E2F5ED` / `#2E9367` (Resolved States & Task Completion)
-* **Powder Sky Blue**: `#E0F2FE` / `#0284C7` (Team Profiles & Minor Priority)
-* **Warm Soft Peach**: `#FFEDD5` / `#EA580C` (In Review / Major Priority)
-* **Soft Coral**: `#FFE4E6` / `#E11D48` (Blocker & Critical Alerts)
-* **Warm Off-White**: `#FAF9F6` (Base Background)
+- Cookie-backed registration, login, logout, and session restoration
+- Persistent projects, project membership, tasks, issues, and activity
+- Project-level access checks and owner-only member management
+- GitHub repository sync, encrypted integration secrets, signed webhook intake, and queued webhook processing
+- GitHub Actions workflow monitoring and dispatch/cancel/rerun routes
+- AI issue analysis, PR review summaries, and error explanations; local demo guidance works without provider credentials, with optional provider-backed responses via `OPENAI_API_KEY`
+- Socket.IO workspace refresh notifications
 
-### Visual Features & 3D Physics
-* **3D Perspective Mouse Tilt**: Task cards dynamically calculate cursor coordinates relative to card center and tilt in 3D space (`perspective(1000px) rotateX(...) rotateY(...) translateZ(12px)`).
-* **HTML5 Drag-and-Drop**: Interactive column drop targets with glowing pastel borders and animated placeholder drop zones (`Drop Task Into [Column Name] ✨`).
-* **Glassmorphism Overlays**: Semi-transparent modal backdrops with `backdrop-filter: blur(12px)` and subtle multi-layer drop shadows.
-* **Typography**: Clean modern typography powered by Google Fonts `'Plus Jakarta Sans'` and `'Outfit'`.
+Live GitHub OAuth/API actions and provider-backed AI responses require credentials in the server environment. Without an AI key, the assistant returns clearly labeled local demo guidance; without GitHub credentials, sample activity is labeled as demo data and live repository actions remain unavailable. Team members must have an existing DevFlow account before a project owner can add them by email.
 
----
+For the preloaded presentation accounts, sample-data boundaries, and a login-first walkthrough, see [DEMO_GUIDE.md](./DEMO_GUIDE.md).
 
-## 🚀 Tech Stack
+## Run locally with Docker
 
-* **Frontend Framework**: React 19 + TypeScript
-* **Build Tool**: Vite (Lightning-fast HMR and production bundle generation)
-* **Styling**: Vanilla CSS with CSS Custom Properties (Design Tokens), 3D Transforms, and Glassmorphism
-* **Iconography**: Lucide React (`lucide-react`)
-* **State Management**: React Context API (`AppContext.tsx`) with central state synchronization across tasks, bugs, projects, team rosters, and activity feeds.
+Prerequisites: Docker Desktop with Compose, Node.js 24 or newer, and npm.
 
----
+1. Copy `.env.example` to `.env`. Set unique, random values for `JWT_SECRET` and `APP_ENCRYPTION_KEY` before exposing the app beyond local development. Optional provider credentials can be configured later.
+2. Start the isolated app, PostgreSQL, and Redis services:
 
-## 📦 Detailed Module Implementations
+   ```powershell
+   docker compose up --build -d
+   ```
 
-### 🏠 1. Home Projects Hub & Multi-Project Workspace
-DevFlow is organized as a multi-project website platform:
+3. Check startup:
 
-* **Central Projects Hub (`ProjectsHub.tsx`)**:
-  * Displays all active projects as aesthetic pastel cards.
-  * Shows Project Key (`DEV`, `MOB`, `DSK`), GitHub Repository link badge (`github.com/org/repo`), assigned developer team avatars with GitHub handles (`@meghana_codes`, `@aarav_dev`), progress bar, task count, and open bug count.
-  * **Open Project Workspace**: Clicking any project opens its isolated workspace.
+   ```powershell
+   Invoke-WebRequest http://localhost:13001/api/health
+   ```
 
-* **Create New Project Modal (`NewProjectModal.tsx`)**:
-  * Form fields for Project Name, Key, Description, GitHub Repo URL, Pastel Accent Color theme picker, and Team Member checkboxes.
+4. Open <http://localhost:13001>.
 
----
+Compose binds to localhost and uses ports `13001` (app), `15432` (PostgreSQL), and `16379` (Redis). Data is stored in the Compose-managed `devflowone_postgres` volume. Stop only this project with `docker compose down`; add `-v` only if you explicitly want to delete its database volume.
 
-### 📋 2. Module 1: Project & Task Management
-Focuses on project task allocation, subtask checklists, and workflow state tracking.
+## Development
 
-* **Interactive Kanban Board (`KanbanBoard.tsx`)**:
-  * 4 Columns: 📌 `To Do`, ⚡ `In Progress`, 👁️ `In Review`, 🎉 `Done`.
-  * Real-time sprint progress bar (`X/Y Tasks (% Done)`).
-  * Filter bar by Priority (`Urgent`, `High`, `Medium`, `Low`) and Assignee.
-  * HTML5 Drag-and-Drop task movement between columns.
+Install dependencies and configure `.env` to connect to the local Compose services. Run the API and Vite frontend in separate processes:
 
-* **Task Cards (`TaskCard.tsx`)**:
-  * Task ID badge (`TSK-101`) & Priority pastel badge.
-  * Subtasks checklist progress bar (`2/4 Subtasks (50%)`) with interactive check-boxes.
-  * Linked GitHub Branch / Pull Request tag (`#42 - Add Kanban controller`).
-  * Assignee avatar with tooltip, due date indicator, and 3D hover physics.
-
-* **Task Creation & Edit Modal (`TaskModal.tsx`)**:
-  * Allows creating/editing tasks, setting priorities, selecting assignees, attaching GitHub PR links, and building dynamic subtask checklists.
-
----
-
-### 🐛 3. Module 2: Issue & Bug Tracking
-Focuses on defect lifecycle management, severity categorization, and resolution status pipelines.
-
-* **Bug Tracking Dashboard (`IssueList.tsx`)**:
-  * Top Telemetry Cards: Total Defects, Open/In-Fix Bugs, Critical/Blockers, and Resolved Defects.
-  * Filter controls for Severity (`Blocker 🚨`, `Critical ⚠️`, `Major 📌`, `Minor 🌿`) and Status (`Open`, `Triaged`, `In Fix`, `Resolved ✅`, `Closed`).
-  * Dual View Modes: **Cards Grid View** & **Table List View**.
-  * **Linked Task Indicator**: Displays cross-linked Module 1 task badge (`Linked Task: TSK-101`).
-
-* **Status Transition Pipeline**:
-  * Quick status promotion selector on every bug card (`Open` → `Triaged` → `In Fix` → `Resolved` → `Closed`).
-
-* **Bug Reporting Modal (`IssueModal.tsx`)**:
-  * Captures Bug Title, Description, Reproduction Steps (bulleted list input), Expected vs Actual Behavior, Environment (`e.g. MacOS / Chrome 129`), Severity, Assigned Engineer, and **Link to Module 1 Task** dropdown.
-
----
-
-### 👥 4. Team Member Management (`TeamSettings.tsx` & `UserModal.tsx`)
-Allows managing engineering profiles and project assignments:
-
-* **Add New Engineer**: Add team members with Name, Role, Email, GitHub Username (`@username`), and Avatar Preset.
-* **Edit Profile**: Update developer details across all tasks, bugs, and project rosters instantly.
-* **Assign / Unassign**: Assign global engineers to specific projects or remove them from project rosters.
-
----
-
-### ⚙️ 4. Module 4: CI/CD Pipeline Monitoring
-Focuses on real-time pipeline status visibility, automated job diagnostics, and GitHub Actions telemetry.
-
-* **Automated Workflow Dashboard (`CICDHub.tsx`)**:
-  * Real-time telemetry banner: Total runs, Build Pass Rate %, Average duration, and live active running runs.
-  * Granular filter by status (`All`, `Passed ✅`, `Failed ❌`, `Running ⏳`), workflow type, and git branch.
-* **Pipeline Execution DAG (`WorkflowGraph.tsx`)**:
-  * Interactive Directed Acyclic Graph displaying job execution stages with live status indicators.
-* **Developer Terminal Console (`BuildLogModal.tsx`)**:
-  * ANSI dark console (`#0d1117`) with colored log lines (`[INFO]`, `[SUCCESS]`, `[ERROR]`), line numbers, step selector, search, copy, and download.
-  * **AI Failure Diagnostic Engine**: Automatically parses failed test assertions, diagnoses root cause, and provides a 1-click "Copy Code Fix" diff!
-* **Workflow Dispatch (`DispatchWorkflowModal.tsx`)**:
-  * Manual pipeline trigger modal on any branch with custom test & coverage parameters.
-* **Repository CI/CD Pipeline (`.github/workflows/ci.yml`)**:
-  * Real GitHub Actions workflow configured for `oxlint`, `tsc -b`, and `vite build`.
-
----
-
-## ⚡ How We Built It (Architecture & Data Flow)
-
-```
-                       [ React App Component Tree ]
-                                    │
-                         ┌──────────┴──────────┐
-                         ▼                     ▼
-               [ AppProvider Context ] ─── [ State Store ]
-                         │                     │ (Projects, Tasks, Issues, Users)
-                         ├──► Home Projects Hub
-                         │     └── New Project Modal
-                         │
-                         └──► Project Workspace
-                               ├── Telemetry Dashboard
-                               ├── Module 1: Kanban Board (HTML5 Drag & Drop)
-                               ├── Module 2: Bug Tracker (Severity Grid/Table)
-                               └── Team & GitHub Repo Settings
-```
-
-### State Synchronization (`AppContext.tsx`)
-When a task is dragged to `Done`, or a bug is marked `Resolved`:
-1. `moveTaskStage(taskId, newStage)` or `updateIssueStatus(issueId, newStatus)` is dispatched.
-2. The state array is updated immutably.
-3. The **Progress Telemetry Bar**, **Column Badges**, **Header Counters**, and **Real-Time Activity Feed** re-render instantly with zero full-page refreshes.
-
----
-
-## 🛠️ How to Run the Application
-
-### Prerequisites
-* Node.js v18+ and NPM
-
-### 1. Install Dependencies
-```bash
+```powershell
 npm install
-```
-
-### 2. Start Development Server
-```bash
 npm run dev
 ```
-Open `http://localhost:5173/` in your browser.
 
-### 3. Build Production Bundle
-```bash
-npm run build
+Open <http://localhost:5173>. Prisma migrations are applied automatically on API startup in development; to apply migrations explicitly, use `npm run db:deploy`.
+
+Useful commands:
+
+```powershell
+npm run build       # Prisma generation, type checks, and production frontend build
+npm run lint        # Oxlint
+npm test            # API integration tests (PostgreSQL and Redis required)
+npm run test:e2e    # Playwright browser tests against http://localhost:13001
 ```
-Creates an optimized production build in the `dist/` directory verified with TypeScript type-checking.
 
----
+Set `PLAYWRIGHT_BASE_URL` to test a different running deployment. Install Chromium with `npx playwright install chromium` if it is not already available.
 
-## 📄 File Tree Summary
+## Configuration
 
-* `src/index.css`: Design system tokens, 3D tilt effects, drag animation classes.
-* `src/types/index.ts`: TypeScript data structures (`Project`, `Task`, `Issue`, `User`, `SubTask`).
-* `src/data/mockData.ts`: Seed mock database.
-* `src/context/AppContext.tsx`: Global state manager.
-* `src/components/Sidebar.tsx`: Pastel navigation bar with Projects Hub link.
-* `src/components/Header.tsx`: Global search & creation action buttons.
-* `src/components/DashboardOverview.tsx`: Combined multi-module telemetry dashboard.
-* `src/components/ProjectsHub/`: Projects Hub landing page & creation modal.
-* `src/components/TaskManagement/`: Module 1 Kanban board, 3D task card, task modal.
-* `src/components/IssueTracking/`: Module 2 defect grid/table, issue modal.
-* `src/components/GitHubIntegration/`: Module 3 GitHub PRs, commits stream, diff viewer, webhooks.
-* `src/components/CICDMonitoring/`: Module 4 CI/CD pipeline hub, DAG visualizer, build log terminal, workflow dispatch modal.
-* `src/components/ProjectTeam/`: Team settings & user modal.
-* `.github/workflows/ci.yml`: GitHub Actions CI pipeline.
+See [.env.example](./.env.example). Keep `.env` private and never commit real provider credentials. GitHub OAuth callback URL and public application/API URLs must match your deployment. For production, use strong unique secrets, HTTPS, secure cookies, managed database/cache services, and a deployment-specific CORS allowlist.
+
+## Project layout
+
+- `src/components/` — React workspace, projects, tasks, issues, GitHub, CI/CD, and team UI
+- `src/context/AppContext.tsx` — authenticated client state and API actions
+- `src/server/` — Express API, authentication, integrations, and Socket.IO/BullMQ runtime
+- `prisma/` — PostgreSQL schema and migrations
+- `tests/` — API integration tests
+- `e2e/` — Playwright browser journeys
+- `docker-compose.yml` and `Dockerfile` — local full-stack environment

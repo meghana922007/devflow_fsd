@@ -1,35 +1,32 @@
-@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Share+Tech+Mono&display=swap');
-
 :root {
-  /* === Y2K NEON GAMING PALETTE === */
-  --color-bg:        #0a0e1a;
-  --color-card:      #0d1224;
-  --color-sidebar:   #080b16;
-  --color-surface:   #111827;
-  --color-surface2:  #161d30;
+  color-scheme: light;
+  --color-bg:        #f7f8fa;
+  --color-card:      #ffffff;
+  --color-sidebar:   #ffffff;
+  --color-surface:   #ffffff;
+  --color-surface2:  #f1f5f9;
 
-  --color-cyan:      #00f5ff;
-  --color-cyan-dim:  #00b8c4;
-  --color-green:     #39ff14;
-  --color-magenta:   #ff00ff;
-  --color-amber:     #ffb700;
-  --color-red:       #ff2d55;
+  --color-cyan:      #2563eb;
+  --color-cyan-dim:  #1d4ed8;
+  --color-green:     #15803d;
+  --color-magenta:   #7c3aed;
+  --color-amber:     #b45309;
+  --color-red:       #dc2626;
 
-  --text-main:       #e8f4fd;
-  --text-muted:      #4a7c8e;
-  --text-dim:        #2a4a5a;
+  --text-main:       #1e293b;
+  --text-muted:      #64748b;
+  --text-dim:        #94a3b8;
 
-  --border-neon:     rgba(0, 245, 255, 0.35);
-  --border-subtle:   rgba(0, 245, 255, 0.12);
+  --border-neon:     #e2e8f0;
+  --border-subtle:   #f1f5f9;
 
-  /* Legacy variable mappings — kept so existing components don't break */
-  --color-primary:          #00f5ff;
-  --color-primary-dark:     #00b8c4;
-  --color-secondary:        #111827;
-  --color-white:            #e8f4fd;
-  --color-gray-bg:          #0a0e1a;
-  --color-accent:           #39ff14;
-  --color-accent-dark:      #2acc0e;
+  --color-primary:          #2563eb;
+  --color-primary-dark:     #1d4ed8;
+  --color-secondary:        #f1f5f9;
+  --color-white:            #ffffff;
+  --color-gray-bg:          #f7f8fa;
+  --color-accent:           #15803d;
+  --color-accent-dark:      #166534;
 
   --bg-main:   var(--color-bg);
   --bg-card:   var(--color-card);
@@ -39,46 +36,46 @@
   --text-light: var(--text-muted);
   --border-color: var(--border-neon);
 
-  --pastel-lavender:      #0d1224;
-  --pastel-lavender-dark: #00f5ff;
-  --pastel-lavender-text: #e8f4fd;
-  --pastel-rose:          #0d1224;
-  --pastel-rose-dark:     #ff00ff;
-  --pastel-rose-text:     #e8f4fd;
-  --pastel-mint:          #0d1224;
-  --pastel-mint-dark:     #39ff14;
-  --pastel-mint-text:     #e8f4fd;
-  --pastel-sky:           #0d1224;
-  --pastel-sky-dark:      #00f5ff;
-  --pastel-sky-text:      #e8f4fd;
-  --pastel-peach:         #0d1224;
-  --pastel-peach-dark:    #ffb700;
-  --pastel-peach-text:    #e8f4fd;
-  --pastel-coral:         #0d1224;
-  --pastel-coral-dark:    #ff2d55;
-  --pastel-coral-text:    #e8f4fd;
+  --pastel-lavender:      #eff6ff;
+  --pastel-lavender-dark: #2563eb;
+  --pastel-lavender-text: #1e3a8a;
+  --pastel-rose:          #fef2f2;
+  --pastel-rose-dark:     #dc2626;
+  --pastel-rose-text:     #991b1b;
+  --pastel-mint:          #f0fdf4;
+  --pastel-mint-dark:     #15803d;
+  --pastel-mint-text:     #166534;
+  --pastel-sky:           #eff6ff;
+  --pastel-sky-dark:      #2563eb;
+  --pastel-sky-text:      #1e40af;
+  --pastel-peach:         #fffbeb;
+  --pastel-peach-dark:    #b45309;
+  --pastel-peach-text:    #92400e;
+  --pastel-coral:         #fef2f2;
+  --pastel-coral-dark:    #dc2626;
+  --pastel-coral-text:     #991b1b;
 
-  --badge-primary-bg:   rgba(0, 245, 255, 0.12);
-  --badge-primary-text: #00f5ff;
-  --badge-accent-bg:    rgba(57, 255, 20, 0.12);
-  --badge-accent-text:  #39ff14;
-  --badge-slate-bg:     rgba(255, 0, 255, 0.12);
-  --badge-slate-text:   #ff00ff;
-  --badge-neutral-bg:   rgba(255, 183, 0, 0.12);
-  --badge-neutral-text: #ffb700;
+  --badge-primary-bg:   #eff6ff;
+  --badge-primary-text: #1d4ed8;
+  --badge-accent-bg:    #f0fdf4;
+  --badge-accent-text:  #15803d;
+  --badge-slate-bg:     #f5f3ff;
+  --badge-slate-text:   #6d28d9;
+  --badge-neutral-bg:   #fffbeb;
+  --badge-neutral-text: #b45309;
 
-  --shadow-soft:       0 4px 24px rgba(0, 245, 255, 0.06);
-  --shadow-3d-hover:   0 0 32px rgba(0, 245, 255, 0.18), 0 8px 24px rgba(0,0,0,0.5);
-  --shadow-dragging:   0 20px 40px rgba(0, 245, 255, 0.25);
+  --shadow-soft:       0 1px 3px rgba(15, 23, 42, 0.08);
+  --shadow-3d-hover:   0 8px 20px rgba(15, 23, 42, 0.10);
+  --shadow-dragging:   0 12px 24px rgba(15, 23, 42, 0.16);
 
-  --radius-sm:   4px;
-  --radius-md:   6px;
-  --radius-lg:   10px;
+  --radius-sm:   6px;
+  --radius-md:   8px;
+  --radius-lg:   12px;
   --radius-pill: 9999px;
 
-  --font-pixel: 'Press Start 2P', monospace;
-  --font-mono:  'Share Tech Mono', 'Courier New', monospace;
-  --font-family: var(--font-mono);
+  --font-pixel: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono:  ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --font-family: var(--font-pixel);
   --font-display: var(--font-pixel);
 }
 
@@ -90,14 +87,13 @@
 }
 
 body {
-  font-family: var(--font-mono);
+  font-family: var(--font-family);
   background-color: var(--color-bg);
   color: var(--text-main);
   line-height: 1.6;
-  -webkit-font-smoothing: none;
+  -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
-  image-rendering: pixelated;
 }
 
 button {
@@ -109,7 +105,7 @@ button {
 }
 
 input, textarea, select {
-  font-family: var(--font-mono);
+  font-family: var(--font-family);
   font-size: 0.9rem;
   color: var(--text-main);
   background: var(--color-surface);
@@ -386,4 +382,293 @@ input, textarea, select {
   background: rgba(0,245,255,0.1);
   box-shadow: 0 0 18px rgba(0,245,255,0.35);
   border-color: var(--color-cyan);
+}
+
+/* Keep older inline-styled screens aligned with the shared workspace theme. */
+#root > div {
+  background-color: var(--bg-main) !important;
+}
+
+#root aside {
+  background-color: var(--bg-sidebar) !important;
+  border-color: var(--border-color) !important;
+  box-shadow: var(--shadow-soft) !important;
+}
+
+#root header {
+  background-color: var(--bg-card) !important;
+  border-color: var(--border-color) !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04) !important;
+}
+
+#root header input {
+  background-color: #f8fafc !important;
+  color: #1e293b !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 8px !important;
+  box-shadow: none !important;
+  font-size: 0.875rem !important;
+}
+
+#root aside [style*="rgba(0,245,255"],
+#root aside [style*="rgba(0, 245, 255"] {
+  background-color: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: none !important;
+}
+
+#root aside [style*="#080b16"],
+#root aside [style*="#0a0e1a"],
+#root header [style*="#080b16"],
+#root header [style*="#0a0e1a"] {
+  background-color: #ffffff !important;
+}
+
+#root aside [style*="#00f5ff"],
+#root header [style*="#00f5ff"],
+#root aside [style*="0, 245, 255"],
+#root header [style*="0, 245, 255"] {
+  color: var(--color-primary) !important;
+  border-color: #dbeafe !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+#root aside [style*="#4a7c8e"],
+#root header [style*="#4a7c8e"],
+#root aside [style*="74, 124, 142"],
+#root header [style*="74, 124, 142"] {
+  color: #64748b !important;
+}
+
+#root aside [style*="#2a4a5a"],
+#root header [style*="#2a4a5a"],
+#root aside [style*="42, 74, 90"],
+#root header [style*="42, 74, 90"] {
+  color: #94a3b8 !important;
+}
+
+#root aside [style*="232, 244, 253"],
+#root header [style*="232, 244, 253"] {
+  color: #334155 !important;
+}
+
+#root aside [style*="8, 11, 22"],
+#root aside [style*="10, 14, 26"],
+#root header [style*="8, 11, 22"],
+#root header [style*="10, 14, 26"] {
+  background-color: #ffffff !important;
+}
+
+.pastel-card,
+.glass-panel {
+  background-color: #ffffff !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: var(--radius-md) !important;
+  box-shadow: var(--shadow-soft) !important;
+  will-change: auto;
+}
+
+.pastel-card:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-3d-hover) !important;
+  border-color: #cbd5e1 !important;
+}
+
+.btn-primary {
+  background: var(--color-primary) !important;
+  color: #ffffff !important;
+  border: 1px solid var(--color-primary) !important;
+  border-radius: var(--radius-sm) !important;
+  box-shadow: none !important;
+  font-family: var(--font-family) !important;
+  font-size: 0.875rem !important;
+  letter-spacing: normal !important;
+  text-transform: none !important;
+}
+
+.btn-primary:hover {
+  background: var(--color-primary-dark) !important;
+  box-shadow: none !important;
+}
+
+.btn-secondary {
+  background: #ffffff !important;
+  color: #334155 !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: var(--radius-sm) !important;
+  box-shadow: none !important;
+  font-family: var(--font-family) !important;
+  font-size: 0.875rem !important;
+  letter-spacing: normal !important;
+  text-transform: none !important;
+}
+
+.btn-secondary:hover {
+  background: #f8fafc !important;
+  border-color: #94a3b8 !important;
+  box-shadow: none !important;
+}
+
+.badge {
+  border-radius: var(--radius-pill) !important;
+  font-family: var(--font-family) !important;
+  letter-spacing: normal !important;
+}
+
+.scanline-bg::after {
+  display: none;
+}
+
+.pixel-glow {
+  animation: none;
+  text-shadow: none !important;
+}
+
+[style*="Press Start 2P"],
+[style*="Share Tech Mono"] {
+  font-family: var(--font-family) !important;
+}
+
+#root aside [style*="Press Start 2P"] {
+  font-size: 0.65rem !important;
+  letter-spacing: normal !important;
+}
+
+#root aside h1 {
+  font-size: 0.95rem !important;
+  line-height: 1.3 !important;
+  text-shadow: none !important;
+}
+
+@media (max-width: 760px) {
+  #root .app-shell {
+    flex-direction: column !important;
+  }
+
+  #root .app-sidebar {
+    position: relative !important;
+    top: auto !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    height: auto !important;
+    z-index: 20;
+  }
+
+  #root .sidebar-brand {
+    padding: 8px 14px !important;
+    border-bottom: 1px solid var(--border-color) !important;
+  }
+
+  #root .sidebar-content {
+    padding: 8px 12px !important;
+    overflow: hidden !important;
+  }
+
+  #root .app-sidebar.is-hub .sidebar-content {
+    display: none;
+  }
+
+  #root .sidebar-profile {
+    display: none !important;
+  }
+
+  #root .app-sidebar.is-workspace .sidebar-content > div > div:nth-child(-n+3) {
+    display: none !important;
+  }
+
+  #root .workspace-nav {
+    flex-direction: row !important;
+    gap: 4px;
+    overflow-x: auto;
+    scrollbar-width: thin;
+  }
+
+  #root .workspace-nav > button {
+    flex: 0 0 auto;
+    padding: 8px 10px !important;
+    border-left: 0 !important;
+    border-bottom: 2px solid transparent !important;
+  }
+
+  #root .workspace-nav > button[style*="0, 245, 255"] {
+    background-color: #eff6ff !important;
+    border-bottom-color: #2563eb !important;
+  }
+
+  #root .app-shell header {
+    height: auto !important;
+    min-height: 60px;
+    flex-wrap: wrap;
+    padding: 10px 16px !important;
+  }
+
+  #root .app-shell header > div:nth-child(2) {
+    order: 3;
+    flex: 1 1 100%;
+    max-width: none !important;
+  }
+
+  .dashboard-overview {
+    padding: 16px !important;
+  }
+
+  .dashboard-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 12px !important;
+  }
+
+  .dashboard-split {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+    min-width: 0;
+  }
+
+  .dashboard-split > * {
+    min-width: 0;
+  }
+
+  .dashboard-split > div:first-child > div:nth-child(2) > div > div {
+    flex-wrap: wrap;
+  }
+
+  .dashboard-split > div:first-child > div:first-child > div:nth-child(2) {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .dashboard-overview > div:first-child {
+    padding: 20px !important;
+  }
+
+  .auth-card {
+    grid-template-columns: 1fr !important;
+    max-width: 480px !important;
+  }
+
+  .auth-card > div:first-child {
+    padding: 28px !important;
+    border-right: 0 !important;
+    border-bottom: 1px solid var(--border-color);
+    gap: 20px;
+  }
+
+  .auth-card > div:first-child > div:first-child {
+    margin-bottom: 0;
+  }
+
+  .auth-card > div:first-child > div:first-child > p {
+    margin-bottom: 16px !important;
+  }
+
+  .auth-card > div:first-child > div:last-child {
+    display: none;
+  }
+
+  .auth-card > div:last-child {
+    padding: 28px !important;
+  }
+
+  .dashboard-overview h3 {
+    font-size: 0.95rem !important;
+  }
 }

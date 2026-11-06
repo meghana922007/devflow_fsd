@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useApp } from '../../context/AppContext';
+import { apiRequest } from '../../services/api';
 import {
   X,
   SlidersHorizontal,
@@ -11,7 +12,7 @@ import {
   ExternalLink,
   KeyRound
 } from 'lucide-react';
-import { fetchGitHubRepoDetails, checkRateLimit, parseGitHubRepo } from '../../services/githubService';
+import { parseGitHubRepo } from '../../services/githubService';
 
 export const RepoSettingsModal: React.FC = () => {
   const {
@@ -21,25 +22,35 @@ export const RepoSettingsModal: React.FC = () => {
     syncRepoWithGitHub,
     switchGitRepo,
     userPublicRepos,
+    githubAccount,
+    refreshGitHubAccount,
+    saveGitHubToken,
+    removeGitHubToken,
     isRepoSettingsModalOpen,
     setIsRepoSettingsModalOpen
   } = useApp();
 
-  const [repoUrl, setRepoUrl] = useState(activeProject.gitRepo || repoSettings.repoUrl || 'https://github.com/meghana922007/devflow');
+  const [repoUrl, setRepoUrl] = useState(activeProject.gitRepo || repoSettings.repoUrl || '');
   const [defaultBranch, setDefaultBranch] = useState(repoSettings.defaultBranch || 'main');
   const [webhookSecret, setWebhookSecret] = useState(repoSettings.webhookSecret || 'whsec_9a7d83f21e847c21b9');
-  const [patToken, setPatToken] = useState(() => localStorage.getItem('devflow_github_pat') || '');
+  const [patToken, setPatToken] = useState('');
   const [autoSync, setAutoSync] = useState(repoSettings.autoSync ?? true);
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
 
   // Live test connection state
   const [isTesting, setIsTesting] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
   const [testResult, setTestResult] = useState<{
     success: boolean;
     message: string;
     rateLimit?: string;
   } | null>(null);
+
+  useEffect(() => {
+    if (!isRepoSettingsModalOpen) return;
+    void refreshGitHubAccount();
+  }, [isRepoSettingsModalOpen, refreshGitHubAccount]);
 
   if (!isRepoSettingsModalOpen) return null;
 
@@ -63,17 +74,24 @@ export const RepoSettingsModal: React.FC = () => {
     setTestResult(null);
 
     try {
-      const info = await fetchGitHubRepoDetails(parsed.owner, parsed.repo, patToken);
-      const rl = await checkRateLimit(patToken);
+      if (!githubAccount.connected) {
+        setTestResult({ success: false, message: 'Connect your GitHub account first to load and verify your repositories.' });
+        return;
+      }
+      const { repositories } = await apiRequest<{ repositories: { html_url: string; default_branch: string }[] }>('/github/repos');
+      const repository = repositories.find(item => item.html_url.toLowerCase() === repoUrl.replace(/\/$/, '').toLowerCase());
+      if (!repository) {
+        setTestResult({ success: false, message: 'This repository is not available to the connected GitHub account.' });
+        return;
+      }
       setTestResult({
         success: true,
-        message: `Successfully reached "${info.fullName}". Default branch: ${info.defaultBranch}. Primary language: ${info.language}. Stars: ${info.stars}.`,
-        rateLimit: rl ? `${rl.remaining}/${rl.limit} requests remaining (resets at ${rl.resetDate})` : undefined
+        message: `Repository access confirmed. Default branch: ${repository.default_branch}.`,
       });
-    } catch (err: any) {
+    } catch (err) {
       setTestResult({
         success: false,
-        message: err.message || 'Failed to connect to GitHub repository.'
+        message: err instanceof Error ? err.message : 'Failed to connect to GitHub repository.'
       });
     } finally {
       setIsTesting(false);
@@ -88,15 +106,33 @@ export const RepoSettingsModal: React.FC = () => {
     }
   };
 
+  const handleConnectGitHub = async () => {
+    if (!patToken.trim()) return;
+    setIsConnecting(true);
+    setTestResult(null);
+    try {
+      if (await saveGitHubToken(patToken.trim())) {
+        setPatToken('');
+        localStorage.removeItem('devflow_github_pat');
+        setTestResult({
+          success: true,
+          message: 'GitHub connected and repository list loaded.',
+        });
+      }
+    } finally {
+      setIsConnecting(false);
+    }
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    // Store PAT if provided
-    if (patToken.trim()) {
-      localStorage.setItem('devflow_github_pat', patToken.trim());
-    } else {
-      localStorage.removeItem('devflow_github_pat');
+    if (!repoUrl.trim()) {
+      setTestResult({ success: false, message: 'Connect GitHub and select a repository before saving.' });
+      return;
     }
+    if (patToken.trim() && !(await saveGitHubToken(patToken.trim()))) return;
+    setPatToken('');
+    localStorage.removeItem('devflow_github_pat');
 
     updateRepoSettings({
       repoUrl,
@@ -106,11 +142,10 @@ export const RepoSettingsModal: React.FC = () => {
       patConfigured: !!patToken.trim()
     });
 
-    if (repoUrl !== activeProject.gitRepo) {
-      await switchGitRepo(repoUrl);
-    } else {
-      await syncRepoWithGitHub(repoUrl);
-    }
+    const synced = repoUrl !== activeProject.gitRepo
+      ? await switchGitRepo(repoUrl)
+      : await syncRepoWithGitHub(repoUrl);
+    if (!synced) return;
 
     setSavedSuccess(true);
     setTimeout(() => {
@@ -119,15 +154,11 @@ export const RepoSettingsModal: React.FC = () => {
     }, 1200);
   };
 
-  // Repositories for Meghana (from live GitHub API or verified list)
-  const meghanaRepos = userPublicRepos.length > 0
-    ? userPublicRepos.map(r => ({ name: r.name, url: r.htmlUrl, desc: r.description || '' }))
-    : [
-        { name: 'devflow', url: 'https://github.com/meghana922007/devflow', desc: 'Unified Workspace Platform' },
-        { name: 'ThinkTank', url: 'https://github.com/meghana922007/ThinkTank', desc: 'TypeScript Reasoning' },
-        { name: 'Agentic-RBAC', url: 'https://github.com/meghana922007/Agentic-RBAC', desc: 'Role-Based Access Control' },
-        { name: 'sellersense', url: 'https://github.com/meghana922007/sellersense', desc: 'E-commerce Analytics' }
-      ];
+  const githubRepos = userPublicRepos.map(repo => ({
+    name: repo.fullName,
+    url: repo.htmlUrl,
+    desc: repo.description || '',
+  }));
 
   return (
     <div style={{
@@ -232,49 +263,31 @@ export const RepoSettingsModal: React.FC = () => {
             gap: '12px'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <img
-                src="https://avatars.githubusercontent.com/u/201999808?v=4"
-                alt="Meghana"
-                style={{ width: '36px', height: '36px', borderRadius: '50%', border: '2px solid #2b6777' }}
-              />
               <div>
                 <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#1c3d44' }}>
-                  Meghana Pinikeshi (@meghana922007)
+                  {githubAccount.connected ? `GitHub account: @${githubAccount.username}` : 'No GitHub account connected'}
                 </div>
                 <div style={{ fontSize: '0.75rem', color: '#2b6777' }}>
-                  Live GitHub Account Connected
+                  {githubAccount.connected ? 'Private and public repositories can be listed.' : 'Connect an account to browse its repositories.'}
                 </div>
               </div>
             </div>
 
-            <a
-              href="https://github.com/meghana922007"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '5px',
-                fontSize: '0.78rem',
-                fontWeight: 700,
-                color: '#2b6777',
-                padding: '4px 10px',
-                borderRadius: 'var(--radius-pill)',
-                backgroundColor: '#ffffff',
-                border: '1px solid #c8d8e4'
-              }}
-            >
-              View GitHub Profile <ExternalLink size={12} />
-            </a>
+            {githubAccount.connected && githubAccount.username && (
+              <a href={`https://github.com/${githubAccount.username}`} target="_blank" rel="noopener noreferrer"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '0.78rem', fontWeight: 700, color: '#2b6777' }}>
+                View GitHub Profile <ExternalLink size={12} />
+              </a>
+            )}
           </div>
 
-          {/* Quick Repo Selector */}
+          {/* Repository selector */}
           <div>
             <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '8px' }}>
-              Select Repository from @meghana922007:
+              Repositories for the connected GitHub account:
             </label>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-              {meghanaRepos.map(r => {
+              {githubRepos.map(r => {
                 const isSelected = repoUrl.toLowerCase().includes(r.name.toLowerCase());
                 return (
                   <button
@@ -301,6 +314,11 @@ export const RepoSettingsModal: React.FC = () => {
                   </button>
                 );
               })}
+              {githubRepos.length === 0 && (
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                  {githubAccount.connected ? 'No repositories were returned for this account.' : 'Connect GitHub below to load your repositories.'}
+                </span>
+              )}
             </div>
           </div>
 
@@ -315,7 +333,7 @@ export const RepoSettingsModal: React.FC = () => {
                 required
                 value={repoUrl}
                 onChange={(e) => setRepoUrl(e.target.value)}
-                placeholder="https://github.com/meghana922007/devflow"
+                placeholder="https://github.com/owner/repository"
                 style={{
                   width: '100%',
                   padding: '9px 12px 9px 36px',
@@ -395,7 +413,7 @@ export const RepoSettingsModal: React.FC = () => {
               type="password"
               value={patToken}
               onChange={(e) => setPatToken(e.target.value)}
-              placeholder="ghp_xxxxxxxxxxxxxxxxxxxx (Optional - raises rate limit to 5000/hr)"
+              placeholder="Paste a fine-grained or classic GitHub token"
               style={{
                 width: '100%',
                 padding: '9px 12px',
@@ -408,8 +426,22 @@ export const RepoSettingsModal: React.FC = () => {
               }}
             />
             <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-              Unauthenticated API is active (60 requests/hr). Providing a PAT increases rate limits to 5,000/hr and allows accessing private repos.
+              Sent to this app's server for validation and encrypted storage; it is never saved in browser storage.
             </p>
+            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+              <button type="button" className="btn-secondary" disabled={!patToken.trim() || isConnecting}
+                onClick={() => void handleConnectGitHub()}>
+                {isConnecting ? 'Connecting…' : 'Connect & load repositories'}
+              </button>
+              {githubAccount.connected && (
+                <button type="button" className="btn-secondary" disabled={isConnecting}
+                  onClick={() => void removeGitHubToken().then(removed => {
+                    if (removed) setTestResult({ success: true, message: 'GitHub account disconnected.' });
+                  })}>
+                  Disconnect GitHub
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Default Branch */}

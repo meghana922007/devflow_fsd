@@ -11,7 +11,6 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task }) => {
   const { moveTaskStage, deleteTask, setEditingTask, setIsTaskModalOpen, toggleSubTask, commits } = useApp();
 
   const [isDragging, setIsDragging] = useState(false);
-  const [tiltStyle, setTiltStyle] = useState({});
   const [showSubtasks, setShowSubtasks] = useState(false);
 
   const completedSubtasks = task.subtasks.filter(s => s.completed).length;
@@ -44,43 +43,15 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task }) => {
     setIsDragging(false);
   };
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    const card = e.currentTarget;
-    const rect = card.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    
-    const centerX = rect.width / 2;
-    const centerY = rect.height / 2;
-    
-    const rotateX = ((y - centerY) / centerY) * -6;
-    const rotateY = ((x - centerX) / centerX) * 6;
-
-    setTiltStyle({
-      transform: `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateZ(8px) scale(1.01)`,
-      transition: 'transform 0.1s ease-out'
-    });
-  };
-
-  const handleMouseLeave = () => {
-    setTiltStyle({
-      transform: 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateZ(0px) scale(1)',
-      transition: 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)'
-    });
-  };
-
   return (
     <div
       draggable={true}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
       className={`pastel-card animate-fade-in ${isDragging ? 'card-dragging' : ''}`}
       style={{
         padding: '16px',
         position: 'relative',
-        ...tiltStyle
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>

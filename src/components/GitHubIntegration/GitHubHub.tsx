@@ -32,6 +32,7 @@ export const GitHubHub: React.FC = () => {
     syncRepoWithGitHub,
     isSyncingGitHub,
     githubRateLimit,
+    githubAccount,
     setIsNewPRModalOpen,
     setIsWebhookSimulatorOpen,
     setIsRepoSettingsModalOpen
@@ -44,8 +45,33 @@ export const GitHubHub: React.FC = () => {
   const openPRs = projectPRs.filter(pr => pr.status === 'open');
   const mergedPRs = projectPRs.filter(pr => pr.status === 'merged');
   const projectCommits = commits.filter(c => c.projectId === activeProject.id);
-  const projectBranches = branches.filter(b => b.projectId === activeProject.id);
+  const savedBranches = branches.filter(b => b.projectId === activeProject.id);
+  const isDemoFeed = !githubAccount.connected
+    && !activeProject.gitRepo
+    && (projectPRs.length > 0 || projectCommits.length > 0);
+  const projectBranches = savedBranches.length > 0 || !isDemoFeed
+    ? savedBranches
+    : Array.from(new Set([
+        ...projectCommits.map(commit => commit.branch),
+        ...projectPRs.flatMap(pullRequest => [pullRequest.sourceBranch, pullRequest.targetBranch]),
+      ])).filter(Boolean).map(name => {
+        const latestCommit = projectCommits.find(commit => commit.branch === name);
+        return {
+          name,
+          projectId: activeProject.id,
+          isDefault: name === repoSettings.defaultBranch,
+          lastCommitSha: latestCommit?.id ?? '',
+          lastCommitMessage: latestCommit?.message ?? '',
+          updatedAt: latestCommit?.timestamp ?? '',
+          ahead: 0,
+          behind: 0,
+        };
+      });
   const projectWebhooks = webhookEvents.filter(w => w.projectId === activeProject.id);
+  const deliveredWebhooks = projectWebhooks.filter(webhook => webhook.status === 'delivered').length;
+  const webhookHealth = projectWebhooks.length > 0
+    ? Math.round((deliveredWebhooks / projectWebhooks.length) * 100)
+    : null;
 
   const handleSync = async () => {
     await syncRepoWithGitHub();
@@ -99,7 +125,7 @@ export const GitHubHub: React.FC = () => {
                 padding: '3px 10px',
                 borderRadius: 'var(--radius-pill)'
               }}>
-                MODULE 3: LIVE GITHUB SYNC
+                {isDemoFeed ? 'GITHUB ACTIVITY · DEMO DATA' : 'MODULE 3: LIVE GITHUB SYNC'}
               </span>
               <span style={{
                 display: 'inline-flex',
@@ -107,12 +133,19 @@ export const GitHubHub: React.FC = () => {
                 gap: '5px',
                 fontSize: '0.75rem',
                 fontWeight: 700,
-                backgroundColor: '#52ab98',
+                backgroundColor: githubAccount.connected ? '#52ab98' : '#64748b',
                 color: '#ffffff',
                 padding: '3px 10px',
                 borderRadius: 'var(--radius-pill)'
               }}>
-                <CheckCircle2 size={12} /> Live API Connected
+                {githubAccount.connected ? <CheckCircle2 size={12} /> : <AlertCircle size={12} />}
+                {githubAccount.connected
+                  ? `Connected as @${githubAccount.username}`
+                  : isDemoFeed
+                    ? 'Sample feed · not connected'
+                    : activeProject.gitRepo
+                      ? 'Repository linked'
+                      : 'GitHub not connected'}
               </span>
               {githubRateLimit && (
                 <span style={{
@@ -132,8 +165,8 @@ export const GitHubHub: React.FC = () => {
             </div>
 
             <h2 style={{ fontSize: '1.45rem', fontWeight: 800, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '10px' }}>
-              {activeProject.gitRepo ? activeProject.gitRepo.replace('https://github.com/', '') : 'meghana922007/devflow'}
-              <span style={{
+              {activeProject.gitRepo ? activeProject.gitRepo.replace('https://github.com/', '') : 'No repository connected'}
+              {activeProject.gitRepo && <span style={{
                 fontSize: '0.75rem',
                 fontWeight: 700,
                 backgroundColor: '#c8d8e4',
@@ -145,11 +178,13 @@ export const GitHubHub: React.FC = () => {
                 gap: '4px'
               }}>
                 <GitBranch size={12} /> {repoSettings.defaultBranch}
-              </span>
+              </span>}
             </h2>
 
             <p style={{ fontSize: '0.85rem', opacity: 0.9, marginTop: '2px' }}>
-              Bidirectional Git telemetry: PR review pipelines, commit feeds, live webhook payloads, and automated task transitions.
+              {activeProject.gitRepo
+                ? 'Pull requests, commits, branches, and webhook events from this repository.'
+                : 'Connect a GitHub repository to sync pull requests, commits, branches, and webhook events.'}
             </p>
           </div>
         </div>
@@ -179,7 +214,7 @@ export const GitHubHub: React.FC = () => {
             </a>
           )}
 
-          <button
+          {activeProject.gitRepo && <button
             onClick={handleCopyRepo}
             title="Copy Repository URL"
             style={{
@@ -197,11 +232,12 @@ export const GitHubHub: React.FC = () => {
           >
             {copiedUrl ? <Check size={14} color="#52ab98" /> : <Copy size={14} />}
             {copiedUrl ? 'Copied' : 'Clone URL'}
-          </button>
+          </button>}
 
           <button
             onClick={handleSync}
-            disabled={isSyncingGitHub}
+            disabled={isSyncingGitHub || !activeProject.gitRepo || !githubAccount.connected}
+            title={!githubAccount.connected ? 'Connect a GitHub account in repository settings.' : !activeProject.gitRepo ? 'Connect a repository in settings first.' : undefined}
             style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -239,6 +275,8 @@ export const GitHubHub: React.FC = () => {
 
           <button
             onClick={() => setIsNewPRModalOpen(true)}
+            disabled={!activeProject.gitRepo || !githubAccount.connected}
+            title={!githubAccount.connected ? 'Connect a GitHub account in repository settings.' : !activeProject.gitRepo ? 'Connect a repository in settings first.' : undefined}
             style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -318,7 +356,7 @@ export const GitHubHub: React.FC = () => {
             {openPRs.length}
           </div>
           <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-            {mergedPRs.length} PRs merged to {repoSettings.defaultBranch}
+            {activeProject.gitRepo ? `${mergedPRs.length} PRs merged to ${repoSettings.defaultBranch}` : 'Connect a repository to sync PRs'}
           </div>
         </div>
 
@@ -333,7 +371,7 @@ export const GitHubHub: React.FC = () => {
             {projectCommits.length}
           </div>
           <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-            Latest SHA: <code style={{ fontWeight: 700, color: '#2b6777' }}>{projectCommits[0]?.id || 'a7f93e1'}</code>
+            Latest SHA: <code style={{ fontWeight: 700, color: '#2b6777' }}>{projectCommits[0]?.id || 'No commits synced'}</code>
           </div>
         </div>
 
@@ -348,7 +386,7 @@ export const GitHubHub: React.FC = () => {
             {projectBranches.length}
           </div>
           <div style={{ fontSize: '0.75rem', color: '#1c3d44' }}>
-            Default branch protected
+            {activeProject.gitRepo ? 'Branches synced from GitHub' : 'Connect a repository to sync branches'}
           </div>
         </div>
 
@@ -360,10 +398,10 @@ export const GitHubHub: React.FC = () => {
             <Radio size={18} color="#52ab98" />
           </div>
           <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#52ab98' }}>
-            100% OK
+            {webhookHealth === null ? '—' : `${webhookHealth}% OK`}
           </div>
           <div style={{ fontSize: '0.75rem', color: '#1c3d44' }}>
-            {projectWebhooks.length} payloads delivered
+            {projectWebhooks.length === 0 ? 'No webhook events received' : `${deliveredWebhooks} of ${projectWebhooks.length} payloads delivered`}
           </div>
         </div>
       </div>

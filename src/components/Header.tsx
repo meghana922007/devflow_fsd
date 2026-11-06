@@ -7,9 +7,8 @@ import {
   LogOut,
   ChevronDown,
   GitPullRequest,
-  UserPlus
+  Sparkles,
 } from 'lucide-react';
-import { mockUsers } from '../data/mockData';
 
 export const Header: React.FC = () => {
   const {
@@ -22,14 +21,11 @@ export const Header: React.FC = () => {
     setEditingIssue,
     setIsNewPRModalOpen,
     setIsNewProjectModalOpen,
-    setIsUserModalOpen,
-    setEditingUser,
     activeTab,
+    setActiveTab,
     currentView,
     currentUser,
     logout,
-    switchUser,
-    users
   } = useApp();
 
   const [showDropdown, setShowDropdown] = useState(false);
@@ -45,9 +41,6 @@ export const Header: React.FC = () => {
       setIsIssueModalOpen(true);
     } else if (activeTab === 'github') {
       setIsNewPRModalOpen(true);
-    } else if (activeTab === 'team') {
-      setEditingUser(null);
-      setIsUserModalOpen(true);
     }
   };
 
@@ -55,14 +48,14 @@ export const Header: React.FC = () => {
     if (currentView === 'hub') {
       return (
         <button onClick={handleContextAction} className="btn-primary" style={{ padding: '7px 16px', fontSize: '0.7rem' }}>
-          <Plus size={14} /> NEW PROJECT
+          <Plus size={14} /> New project
         </button>
       );
     }
     if (activeTab === 'kanban' || activeTab === 'dashboard') {
       return (
         <button onClick={handleContextAction} className="btn-primary" style={{ padding: '7px 16px', fontSize: '0.7rem' }}>
-          <Plus size={14} /> NEW TASK
+          <Plus size={14} /> New task
         </button>
       );
     }
@@ -77,21 +70,14 @@ export const Header: React.FC = () => {
             boxShadow: 'inset -3px -3px 0 rgba(0,0,0,0.35), inset 3px 3px 0 rgba(255,255,255,0.2), 0 0 14px rgba(255,45,85,0.45)',
           }}
         >
-          <Bug size={14} /> REPORT BUG
+          <Bug size={14} /> Report issue
         </button>
       );
     }
     if (activeTab === 'github') {
       return (
         <button onClick={handleContextAction} className="btn-primary" style={{ padding: '7px 16px', fontSize: '0.7rem' }}>
-          <GitPullRequest size={14} /> NEW PR
-        </button>
-      );
-    }
-    if (activeTab === 'team') {
-      return (
-        <button onClick={handleContextAction} className="btn-primary" style={{ padding: '7px 16px', fontSize: '0.7rem' }}>
-          <UserPlus size={14} /> ADD ENG
+          <GitPullRequest size={14} /> New pull request
         </button>
       );
     }
@@ -99,11 +85,12 @@ export const Header: React.FC = () => {
   };
 
   const getSearchPlaceholder = () => {
-    if (currentView === 'hub') return '> search projects...';
-    if (activeTab === 'kanban') return '> search tasks...';
-    if (activeTab === 'issues') return '> search bugs...';
-    if (activeTab === 'github') return '> search PRs, commits...';
-    return '> search workspace...';
+    if (activeTab === 'ai') return 'AI developer assistance';
+    if (currentView === 'hub') return 'Search projects';
+    if (activeTab === 'kanban') return 'Search tasks';
+    if (activeTab === 'issues') return 'Search issues';
+    if (activeTab === 'github') return 'Search pull requests and commits';
+    return 'Search workspace';
   };
 
   return (
@@ -132,7 +119,7 @@ export const Header: React.FC = () => {
             textShadow: '0 0 10px rgba(0,245,255,0.5)',
             whiteSpace: 'nowrap',
           }}>
-            ORG HUB
+            {activeTab === 'ai' ? 'AI ASSISTANT' : 'ORG HUB'}
           </h2>
         ) : (
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -203,6 +190,15 @@ export const Header: React.FC = () => {
 
       {/* ── Right: Action button + User ── */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
+        <button
+          type="button"
+          aria-label="Open AI Assistant"
+          onClick={() => setActiveTab('ai')}
+          className="btn-primary"
+          style={{ padding: '7px 12px', fontSize: '0.7rem' }}
+        >
+          <Sparkles size={14} /> AI Assistant
+        </button>
         {getActionButton()}
 
         {/* User dropdown */}
@@ -227,7 +223,7 @@ export const Header: React.FC = () => {
             }}
           >
             <img
-              src={currentUser?.avatar || mockUsers[1].avatar}
+              src={currentUser?.avatar || ''}
               alt=""
               style={{ width: '24px', height: '24px', borderRadius: '50%', border: '1px solid rgba(0,245,255,0.3)' }}
             />
@@ -285,53 +281,6 @@ export const Header: React.FC = () => {
                 marginBottom: '4px',
               }}>
                 @{currentUser?.githubUsername} &bull; {currentUser?.role}
-              </div>
-
-              <div style={{ borderTop: '1px solid rgba(0,245,255,0.1)', paddingTop: '8px' }}>
-                <div style={{
-                  fontFamily: "'Press Start 2P', monospace",
-                  fontSize: '0.4rem',
-                  color: '#2a4a5a',
-                  letterSpacing: '0.05em',
-                  marginBottom: '6px',
-                }}>
-                  SWITCH USER:
-                </div>
-                {users.map(u => (
-                  <button
-                    key={u.id}
-                    onClick={() => { switchUser(u); setShowDropdown(false); }}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: '8px',
-                      padding: '6px 8px',
-                      width: '100%',
-                      background: currentUser?.id === u.id ? 'rgba(0,245,255,0.08)' : 'transparent',
-                      border: currentUser?.id === u.id ? '1px solid rgba(0,245,255,0.2)' : '1px solid transparent',
-                      color: currentUser?.id === u.id ? '#00f5ff' : '#4a7c8e',
-                      fontFamily: "'Share Tech Mono', monospace",
-                      fontSize: '0.76rem',
-                      textAlign: 'left',
-                      cursor: 'pointer',
-                      transition: 'all 0.1s ease',
-                      marginBottom: '2px',
-                    }}
-                    onMouseEnter={(e) => {
-                      if (currentUser?.id !== u.id) {
-                        (e.currentTarget as HTMLButtonElement).style.color = '#e8f4fd';
-                        (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.04)';
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (currentUser?.id !== u.id) {
-                        (e.currentTarget as HTMLButtonElement).style.color = '#4a7c8e';
-                        (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
-                      }
-                    }}
-                  >
-                    <img src={u.avatar} alt="" style={{ width: '18px', height: '18px', borderRadius: '50%', border: '1px solid rgba(0,245,255,0.2)' }} />
-                    <span style={{ fontWeight: 600 }}>{u.name}</span>
-                  </button>
-                ))}
               </div>
 
               <div style={{ borderTop: '1px solid rgba(0,245,255,0.1)', paddingTop: '8px', marginTop: '2px' }}>

@@ -46,20 +46,20 @@ export const DispatchWorkflowModal: React.FC = () => {
     }
   ];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-
-    setTimeout(() => {
-      dispatchWorkflow({
+    try {
+      const dispatched = await dispatchWorkflow({
         workflowName: selectedWorkflow,
         branch: selectedBranch,
         runTests,
         verbose
       });
+      if (dispatched) setIsDispatchModalOpen(false);
+    } finally {
       setIsSubmitting(false);
-      setIsDispatchModalOpen(false);
-    }, 400);
+    }
   };
 
   return (

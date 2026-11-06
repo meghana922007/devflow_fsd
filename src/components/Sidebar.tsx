@@ -12,7 +12,6 @@ import {
   LogOut,
   ChevronUp,
   Plus,
-  CheckCircle2,
   Cpu
 } from 'lucide-react';
 
@@ -31,8 +30,6 @@ export const Sidebar: React.FC = () => {
     currentView,
     currentUser,
     logout,
-    users,
-    switchUser,
     setIsNewProjectModalOpen
   } = useApp();
 
@@ -79,7 +76,7 @@ export const Sidebar: React.FC = () => {
   });
 
   return (
-    <aside style={{
+    <aside className={`app-sidebar ${currentView === 'hub' ? 'is-hub' : 'is-workspace'}`} style={{
       width: '260px',
       minWidth: '260px',
       backgroundColor: '#080b16',
@@ -93,7 +90,7 @@ export const Sidebar: React.FC = () => {
     }}>
 
       {/* ===== LOGO / TITLE ===== */}
-      <div style={{
+      <div className="sidebar-brand" style={{
         padding: '22px 16px 18px',
         borderBottom: '1px solid rgba(0,245,255,0.1)',
         display: 'flex',
@@ -118,7 +115,7 @@ export const Sidebar: React.FC = () => {
             lineHeight: 1.3,
             textShadow: '0 0 10px rgba(0,245,255,0.6)',
           }}>
-            DEVFLOW
+            DevFlowOne
           </h1>
           <div style={{
             fontFamily: "'Share Tech Mono', monospace",
@@ -127,13 +124,13 @@ export const Sidebar: React.FC = () => {
             marginTop: '3px',
             letterSpacing: '0.06em',
           }}>
-            {currentView === 'hub' ? '// ORG HUB' : '// PROJECT WS'}
+            {currentView === 'hub' ? 'Organization workspace' : 'Project workspace'}
           </div>
         </div>
       </div>
 
       {/* ===== CONTENT ===== */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '14px 0' }}>
+      <div className="sidebar-content" style={{ flex: 1, overflowY: 'auto', padding: '14px 0' }}>
 
         {currentView === 'hub' ? (
           /* ── Hub view ── */
@@ -159,7 +156,7 @@ export const Sidebar: React.FC = () => {
                 marginBottom: '6px',
                 letterSpacing: '0.06em',
               }}>
-                ── NAVIGATION ──
+                Navigation
               </div>
               <div style={{
                 display: 'flex', alignItems: 'center', gap: '10px',
@@ -174,6 +171,12 @@ export const Sidebar: React.FC = () => {
                 <Home size={16} />
                 <span>All Projects Hub</span>
               </div>
+              <button onClick={() => setActiveTab('ai')} style={navBtn('ai')}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <Cpu size={15} />
+                  <span>AI Assistant</span>
+                </div>
+              </button>
             </div>
 
             {/* Project list */}
@@ -186,7 +189,7 @@ export const Sidebar: React.FC = () => {
                 marginBottom: '6px',
                 letterSpacing: '0.06em',
               }}>
-                ── WORKSPACES ({projects.length}) ──
+                Projects ({projects.length})
               </div>
               <div style={{ display: 'flex', flexDirection: 'column' }}>
                 {projects.map(p => (
@@ -305,11 +308,11 @@ export const Sidebar: React.FC = () => {
               padding: '4px 16px',
               letterSpacing: '0.06em',
             }}>
-              ── SECTIONS ──
+              Workspace
             </div>
 
             {/* Nav items */}
-            <nav style={{ display: 'flex', flexDirection: 'column' }}>
+            <nav className="workspace-nav" style={{ display: 'flex', flexDirection: 'column' }}>
               {/* Overview */}
               <button onClick={() => setActiveTab('dashboard')} style={navBtn('dashboard')}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -364,6 +367,13 @@ export const Sidebar: React.FC = () => {
                 )}
               </button>
 
+              <button onClick={() => setActiveTab('ai')} style={navBtn('ai')}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <Sparkles size={15} />
+                  <span>AI Assistant</span>
+                </div>
+              </button>
+
               {/* Team & Settings */}
               <button onClick={() => setActiveTab('team')} style={navBtn('team')}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -401,42 +411,6 @@ export const Sidebar: React.FC = () => {
               gap: '6px',
             }}
           >
-            <div style={{
-              fontFamily: "'Press Start 2P', monospace",
-              fontSize: '0.42rem',
-              color: '#2a4a5a',
-              letterSpacing: '0.06em',
-              marginBottom: '4px',
-            }}>
-              SWITCH ACCOUNT:
-            </div>
-
-            {users.map(u => (
-              <button
-                key={u.id}
-                onClick={() => { switchUser(u); setShowUserMenu(false); }}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: '8px',
-                  padding: '6px 8px',
-                  background: currentUser?.id === u.id ? 'rgba(0,245,255,0.08)' : 'transparent',
-                  border: currentUser?.id === u.id ? '1px solid rgba(0,245,255,0.2)' : '1px solid transparent',
-                  color: currentUser?.id === u.id ? '#00f5ff' : '#4a7c8e',
-                  fontFamily: "'Share Tech Mono', monospace",
-                  fontSize: '0.76rem',
-                  textAlign: 'left',
-                  cursor: 'pointer',
-                  transition: 'all 0.1s ease',
-                }}
-              >
-                <img src={u.avatar} alt="" style={{ width: '20px', height: '20px', borderRadius: '50%', border: '1px solid rgba(0,245,255,0.2)' }} />
-                <div style={{ flex: 1, overflow: 'hidden' }}>
-                  <div style={{ fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{u.name}</div>
-                  <div style={{ fontSize: '0.65rem', opacity: 0.7 }}>{u.role}</div>
-                </div>
-                {currentUser?.id === u.id && <CheckCircle2 size={13} color="#00f5ff" />}
-              </button>
-            ))}
-
             <div style={{ borderTop: '1px solid rgba(0,245,255,0.1)', paddingTop: '8px', marginTop: '2px' }}>
               <button
                 onClick={() => { logout(); setShowUserMenu(false); }}
@@ -461,6 +435,7 @@ export const Sidebar: React.FC = () => {
 
         {/* Profile row */}
         <div
+          className="sidebar-profile"
           onClick={() => setShowUserMenu(!showUserMenu)}
           style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',

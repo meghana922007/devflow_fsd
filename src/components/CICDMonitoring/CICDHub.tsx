@@ -41,6 +41,7 @@ export const CICDHub: React.FC = () => {
   const [expandedGraphRunId, setExpandedGraphRunId] = useState<string | null>(null);
 
   const projectRuns = workflowRuns.filter(r => r.projectId === activeProject.id || !r.projectId);
+  const projectBranches = branches.filter(branch => branch.projectId === activeProject.id);
 
   // Filter runs
   const filteredRuns = projectRuns.filter(run => {
@@ -63,16 +64,21 @@ export const CICDHub: React.FC = () => {
   const passedRuns = projectRuns.filter(r => r.status === 'success').length;
   const failedRuns = projectRuns.filter(r => r.status === 'failure').length;
   const activeRuns = projectRuns.filter(r => r.status === 'in_progress');
-  const passRate = totalRuns > 0 ? Math.round((passedRuns / (passedRuns + failedRuns || 1)) * 100) : 100;
+  const passRate = totalRuns > 0 ? Math.round((passedRuns / (passedRuns + failedRuns || 1)) * 100) : 0;
 
   // Average Duration calculation
   const completedWithDur = projectRuns.filter(r => r.durationSeconds > 0 && r.status !== 'in_progress');
-  const avgSec = completedWithDur.length > 0
+  const avgDuration = completedWithDur.length > 0
     ? Math.round(completedWithDur.reduce((acc, r) => acc + r.durationSeconds, 0) / completedWithDur.length)
-    : 72;
-  const avgDurationStr = `${Math.floor(avgSec / 60)}m ${avgSec % 60}s`;
+    : null;
+  const avgDurationStr = avgDuration === null ? '—' : `${Math.floor(avgDuration / 60)}m ${avgDuration % 60}s`;
 
   const distinctWorkflows = Array.from(new Set(projectRuns.map(r => r.name)));
+  const integrationLabel = activeProject.gitRepo
+    ? 'Repository linked'
+    : projectRuns.length > 0
+      ? 'Sample pipeline history'
+      : 'No repository connected';
 
   return (
     <div style={{ padding: '24px 32px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -123,12 +129,13 @@ export const CICDHub: React.FC = () => {
                 gap: '5px',
                 fontSize: '0.75rem',
                 fontWeight: 700,
-                backgroundColor: '#52ab98',
+                backgroundColor: activeProject.gitRepo ? '#52ab98' : '#64748b',
                 color: '#ffffff',
                 padding: '3px 10px',
                 borderRadius: 'var(--radius-pill)'
               }}>
-                <CheckCircle2 size={12} /> GitHub Actions Connected
+                {activeProject.gitRepo ? <CheckCircle2 size={12} /> : <AlertTriangle size={12} />}
+                {integrationLabel}
               </span>
               {activeRuns.length > 0 && (
                 <span style={{
@@ -149,7 +156,7 @@ export const CICDHub: React.FC = () => {
 
             <h2 style={{ fontSize: '1.45rem', fontWeight: 800, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '10px' }}>
               Automated Pipelines & Workflows
-              <span style={{
+              {activeProject.gitRepo && <span style={{
                 fontSize: '0.75rem',
                 fontWeight: 700,
                 backgroundColor: '#c8d8e4',
@@ -161,7 +168,7 @@ export const CICDHub: React.FC = () => {
                 gap: '4px'
               }}>
                 <GitBranch size={12} /> {repoSettings.defaultBranch}
-              </span>
+              </span>}
             </h2>
 
             <p style={{ fontSize: '0.84rem', color: '#c8d8e4', marginTop: '3px' }}>
@@ -422,7 +429,7 @@ export const CICDHub: React.FC = () => {
             }}
           >
             <option value="all">All Branches</option>
-            {branches.map(b => (
+            {projectBranches.map(b => (
               <option key={b.name} value={b.name}>{b.name}</option>
             ))}
           </select>

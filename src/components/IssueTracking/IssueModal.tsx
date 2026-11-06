@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import type { IssueSeverity, IssueStatus } from '../../types';
-import { mockUsers } from '../../data/mockData';
 import { X, Bug } from 'lucide-react';
 
 export const IssueModal: React.FC = () => {
-  const { isIssueModalOpen, setIsIssueModalOpen, editingIssue, addIssue, updateIssue, activeProject, tasks } = useApp();
+  const { isIssueModalOpen, setIsIssueModalOpen, editingIssue, addIssue, updateIssue, activeProject, tasks, currentUser } = useApp();
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -15,8 +14,9 @@ export const IssueModal: React.FC = () => {
   const [severity, setSeverity] = useState<IssueSeverity>('major');
   const [status, setStatus] = useState<IssueStatus>('open');
   const [environment, setEnvironment] = useState('MacOS / Chrome 129');
-  const [assigneeId, setAssigneeId] = useState(mockUsers[1].id);
+  const [assigneeId, setAssigneeId] = useState('');
   const [linkedTaskId, setLinkedTaskId] = useState<string>('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (editingIssue) {
@@ -39,58 +39,42 @@ export const IssueModal: React.FC = () => {
       setSeverity('major');
       setStatus('open');
       setEnvironment('MacOS / Chrome 129');
-      setAssigneeId(mockUsers[1].id);
+      setAssigneeId('');
       setLinkedTaskId('');
     }
   }, [editingIssue, isIssueModalOpen]);
 
   if (!isIssueModalOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
 
-    const assignee = mockUsers.find(u => u.id === assigneeId) || mockUsers[0];
+    setIsSubmitting(true);
+    const assignee = activeProject.teamMembers.find(user => user.id === assigneeId);
     const stepsArray = reproductionStepsText
       .split('\n')
       .map(s => s.trim())
       .filter(Boolean);
 
-    if (editingIssue) {
-      updateIssue(editingIssue.id, {
-        title,
-        description,
-        reproductionSteps: stepsArray,
-        expectedBehavior,
-        actualBehavior,
-        severity,
-        status,
-        environment,
-        assigneeId: assignee.id,
-        assigneeName: assignee.name,
-        assigneeAvatar: assignee.avatar,
-        linkedTaskId: linkedTaskId || undefined
-      });
-    } else {
-      addIssue({
-        projectId: activeProject.id,
-        title,
-        description,
-        reproductionSteps: stepsArray,
-        expectedBehavior,
-        actualBehavior,
-        severity,
-        status,
-        environment,
-        reporterName: 'Meghana Rao',
-        assigneeId: assignee.id,
-        assigneeName: assignee.name,
-        assigneeAvatar: assignee.avatar,
-        linkedTaskId: linkedTaskId || undefined
-      });
+    try {
+      const updates = {
+        title, description, reproductionSteps: stepsArray, expectedBehavior,
+        actualBehavior, severity, status, environment, assigneeId,
+        assigneeName: assignee?.name ?? '', assigneeAvatar: assignee?.avatar ?? '',
+        linkedTaskId: linkedTaskId || undefined,
+      };
+      const saved = editingIssue
+        ? await updateIssue(editingIssue.id, updates)
+        : await addIssue({
+            projectId: activeProject.id,
+            ...updates,
+            reporterName: currentUser?.name ?? currentUser?.email ?? 'Unknown user',
+          });
+      if (saved) setIsIssueModalOpen(false);
+    } finally {
+      setIsSubmitting(false);
     }
-
-    setIsIssueModalOpen(false);
   };
 
   return (
@@ -300,8 +284,9 @@ export const IssueModal: React.FC = () => {
                   fontSize: '0.85rem'
                 }}
               >
-                {mockUsers.map(u => (
-                  <option key={u.id} value={u.id}>{u.name} ({u.role})</option>
+                <option value="">Unassigned</option>
+                {activeProject.teamMembers.map(user => (
+                  <option key={user.id} value={user.id}>{user.name} ({user.role})</option>
                 ))}
               </select>
             </div>
@@ -359,6 +344,7 @@ export const IssueModal: React.FC = () => {
             <button
               type="submit"
               className="btn-primary"
+              disabled={isSubmitting}
               style={{ backgroundColor: '#E05A8D' }}
             >
               {editingIssue ? 'Save Defect Updates' : 'Report Bug'}

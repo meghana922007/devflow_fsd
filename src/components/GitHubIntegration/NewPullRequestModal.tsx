@@ -25,6 +25,7 @@ export const NewPullRequestModal: React.FC = () => {
   const [linkedTaskId, setLinkedTaskId] = useState('');
   const [linkedIssueId, setLinkedIssueId] = useState('');
   const [isDraft, setIsDraft] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!isNewPRModalOpen) return null;
 
@@ -32,26 +33,31 @@ export const NewPullRequestModal: React.FC = () => {
   const projectTasks = tasks.filter(t => t.projectId === activeProject.id);
   const projectIssues = issues.filter(i => i.projectId === activeProject.id);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !sourceBranch.trim()) return;
 
-    createPullRequest({
-      title: title.trim(),
-      description: description.trim(),
-      sourceBranch: sourceBranch.trim(),
-      targetBranch,
-      linkedTaskId: linkedTaskId || undefined,
-      linkedIssueId: linkedIssueId || undefined,
-      isDraft
-    });
-
-    setTitle('');
-    setDescription('');
-    setLinkedTaskId('');
-    setLinkedIssueId('');
-    setIsDraft(false);
-    setIsNewPRModalOpen(false);
+    setIsSubmitting(true);
+    try {
+      const created = await createPullRequest({
+        title: title.trim(),
+        description: description.trim(),
+        sourceBranch: sourceBranch.trim(),
+        targetBranch,
+        linkedTaskId: linkedTaskId || undefined,
+        linkedIssueId: linkedIssueId || undefined,
+        isDraft
+      });
+      if (!created) return;
+      setTitle('');
+      setDescription('');
+      setLinkedTaskId('');
+      setLinkedIssueId('');
+      setIsDraft(false);
+      setIsNewPRModalOpen(false);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -343,8 +349,9 @@ export const NewPullRequestModal: React.FC = () => {
             <button
               type="submit"
               className="btn-primary"
+              disabled={isSubmitting}
             >
-              <GitPullRequest size={15} /> Create Pull Request
+              <GitPullRequest size={15} /> {isSubmitting ? 'Creating…' : 'Create Pull Request'}
             </button>
           </div>
         </form>

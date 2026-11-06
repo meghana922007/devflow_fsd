@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import type { TaskStage, Priority, SubTask } from '../../types';
-import { mockUsers } from '../../data/mockData';
 import { X, Plus, Trash2, Sparkles } from 'lucide-react';
 
 export const TaskModal: React.FC = () => {
@@ -11,12 +10,13 @@ export const TaskModal: React.FC = () => {
   const [description, setDescription] = useState('');
   const [stage, setStage] = useState<TaskStage>('todo');
   const [priority, setPriority] = useState<Priority>('medium');
-  const [assigneeId, setAssigneeId] = useState(mockUsers[0].id);
+  const [assigneeId, setAssigneeId] = useState('');
   const [dueDate, setDueDate] = useState('2026-10-15');
   const [tags, setTags] = useState('Frontend, UI');
   const [githubPR, setGithubPR] = useState('');
   const [subtasks, setSubtasks] = useState<SubTask[]>([]);
   const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (editingTask) {
@@ -34,7 +34,7 @@ export const TaskModal: React.FC = () => {
       setDescription('');
       setStage('todo');
       setPriority('medium');
-      setAssigneeId(mockUsers[0].id);
+      setAssigneeId('');
       setDueDate('2026-10-15');
       setTags('Frontend, Core');
       setGithubPR('');
@@ -56,45 +56,31 @@ export const TaskModal: React.FC = () => {
     setSubtasks(prev => prev.filter(s => s.id !== id));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
 
-    const assignee = mockUsers.find(u => u.id === assigneeId) || mockUsers[0];
+    setIsSubmitting(true);
+    const assignee = activeProject.teamMembers.find(user => user.id === assigneeId);
     const parsedTags = tags.split(',').map(t => t.trim()).filter(Boolean);
 
-    if (editingTask) {
-      updateTask(editingTask.id, {
-        title,
-        description,
-        stage,
-        priority,
-        assigneeId: assignee.id,
-        assigneeName: assignee.name,
-        assigneeAvatar: assignee.avatar,
-        dueDate,
-        tags: parsedTags,
-        githubPR,
-        subtasks
-      });
-    } else {
-      addTask({
-        projectId: activeProject.id,
-        title,
-        description,
-        stage,
-        priority,
-        assigneeId: assignee.id,
-        assigneeName: assignee.name,
-        assigneeAvatar: assignee.avatar,
-        dueDate,
-        tags: parsedTags,
-        githubPR,
-        subtasks
-      });
+    try {
+      const saved = editingTask
+        ? await updateTask(editingTask.id, {
+            title, description, stage, priority,
+            assigneeId, assigneeName: assignee?.name ?? '', assigneeAvatar: assignee?.avatar ?? '',
+            dueDate, tags: parsedTags, githubPR, subtasks,
+          })
+        : await addTask({
+            projectId: activeProject.id,
+            title, description, stage, priority,
+            assigneeId, assigneeName: assignee?.name ?? '', assigneeAvatar: assignee?.avatar ?? '',
+            dueDate, tags: parsedTags, githubPR, subtasks,
+          });
+      if (saved) setIsTaskModalOpen(false);
+    } finally {
+      setIsSubmitting(false);
     }
-
-    setIsTaskModalOpen(false);
   };
 
   return (
@@ -244,8 +230,9 @@ export const TaskModal: React.FC = () => {
                   fontSize: '0.85rem'
                 }}
               >
-                {mockUsers.map(u => (
-                  <option key={u.id} value={u.id}>{u.name} ({u.role})</option>
+                <option value="">Unassigned</option>
+                {activeProject.teamMembers.map(user => (
+                  <option key={user.id} value={user.id}>{user.name} ({user.role})</option>
                 ))}
               </select>
             </div>
@@ -370,6 +357,7 @@ export const TaskModal: React.FC = () => {
             <button
               type="submit"
               className="btn-primary"
+              disabled={isSubmitting}
             >
               {editingTask ? 'Save Task Updates' : 'Create Task'}
             </button>

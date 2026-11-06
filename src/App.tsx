@@ -4,6 +4,7 @@ import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import { ProjectsHub } from './components/ProjectsHub/ProjectsHub';
 import { DashboardOverview } from './components/DashboardOverview';
+import { AIAssistantCard } from './components/AIAssistantCard';
 import { KanbanBoard } from './components/TaskManagement/KanbanBoard';
 import { IssueList } from './components/IssueTracking/IssueList';
 import { TeamSettings } from './components/ProjectTeam/TeamSettings';
@@ -11,7 +12,6 @@ import { GitHubHub } from './components/GitHubIntegration/GitHubHub';
 import { TaskModal } from './components/TaskManagement/TaskModal';
 import { IssueModal } from './components/IssueTracking/IssueModal';
 import { NewProjectModal } from './components/ProjectsHub/NewProjectModal';
-import { UserModal } from './components/ProjectTeam/UserModal';
 import { DiffModal } from './components/GitHubIntegration/DiffModal';
 import { NewPullRequestModal } from './components/GitHubIntegration/NewPullRequestModal';
 import { WebhookSimulatorModal } from './components/GitHubIntegration/WebhookSimulatorModal';
@@ -27,6 +27,7 @@ const MainContent: React.FC = () => {
   if (currentView === 'hub') {
     return (
       <main style={{ flex: 1, overflowY: 'auto', backgroundColor: 'var(--bg-main)' }}>
+        {activeTab === 'ai' && <div style={{ padding: 24 }}><AIAssistantCard /></div>}
         <ProjectsHub />
       </main>
     );
@@ -40,19 +41,38 @@ const MainContent: React.FC = () => {
       {activeTab === 'github' && <GitHubHub />}
       {activeTab === 'cicd' && <CICDHub />}
       {activeTab === 'team' && <TeamSettings />}
+      {activeTab === 'ai' && <div style={{ padding: 24 }}><AIAssistantCard /></div>}
     </main>
   );
 };
 
 const AppShell: React.FC = () => {
-  const { isAuthenticated } = useApp();
+  const { isAuthenticated, activeProject, apiError, clearApiError } = useApp();
 
   if (!isAuthenticated) {
     return <AuthScreen />;
   }
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: 'var(--bg-main)' }}>
+    <div className="app-shell" style={{ display: 'flex', minHeight: '100vh', backgroundColor: 'var(--bg-main)' }}>
+      {apiError && (
+        <div role="alert" style={{
+          position: 'fixed',
+          top: 12,
+          right: 12,
+          zIndex: 200,
+          maxWidth: 420,
+          padding: '12px 16px',
+          border: '1px solid #fecaca',
+          borderRadius: 8,
+          background: '#fff1f2',
+          color: '#991b1b',
+          boxShadow: '0 4px 16px rgba(15,23,42,0.12)',
+        }}>
+          <span>{apiError}</span>
+          <button type="button" onClick={clearApiError} aria-label="Dismiss error" style={{ marginLeft: 12 }}>×</button>
+        </div>
+      )}
       <Sidebar />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
         <Header />
@@ -63,11 +83,10 @@ const AppShell: React.FC = () => {
       <TaskModal />
       <IssueModal />
       <NewProjectModal />
-      <UserModal />
       <DiffModal />
       <NewPullRequestModal />
       <WebhookSimulatorModal />
-      <RepoSettingsModal />
+      <RepoSettingsModal key={activeProject.id} />
       <BuildLogModal />
       <DispatchWorkflowModal />
     </div>

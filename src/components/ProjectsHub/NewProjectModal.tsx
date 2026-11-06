@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { mockUsers } from '../../data/mockData';
 import { X, FolderPlus, Check, FolderGit2 } from 'lucide-react';
 
 const pastelColors = [
@@ -13,33 +12,32 @@ const pastelColors = [
 ];
 
 export const NewProjectModal: React.FC = () => {
-  const { isNewProjectModalOpen, setIsNewProjectModalOpen, addProject } = useApp();
+  const { isNewProjectModalOpen, setIsNewProjectModalOpen, addProject, users } = useApp();
 
   const [name, setName] = useState('');
   const [key, setKey] = useState('');
   const [description, setDescription] = useState('');
-  const [gitRepo, setGitRepo] = useState('https://github.com/my-org/my-project');
+  const [gitRepo, setGitRepo] = useState('');
   const [color, setColor] = useState(pastelColors[0].hex);
-  const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([mockUsers[0].id, mockUsers[1].id]);
+  const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
 
   if (!isNewProjectModalOpen) return null;
 
   const toggleMember = (id: string) => {
     if (selectedMemberIds.includes(id)) {
-      if (selectedMemberIds.length === 1) return;
       setSelectedMemberIds(prev => prev.filter(mId => mId !== id));
     } else {
       setSelectedMemberIds(prev => [...prev, id]);
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !key.trim()) return;
 
-    const assignedMembers = mockUsers.filter(u => selectedMemberIds.includes(u.id));
+    const assignedMembers = users.filter(u => selectedMemberIds.includes(u.id));
 
-    addProject({
+    const created = await addProject({
       name: name.trim(),
       key: key.trim().toUpperCase(),
       description: description.trim(),
@@ -47,6 +45,7 @@ export const NewProjectModal: React.FC = () => {
       gitRepo: gitRepo.trim(),
       teamMembers: assignedMembers
     });
+    if (!created) return;
 
     setIsNewProjectModalOpen(false);
     setName('');
@@ -226,7 +225,7 @@ export const NewProjectModal: React.FC = () => {
               ASSIGN TEAM MEMBERS ({selectedMemberIds.length} Selected)
             </label>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '160px', overflowY: 'auto' }}>
-              {mockUsers.map(user => {
+              {users.map(user => {
                 const isSelected = selectedMemberIds.includes(user.id);
                 return (
                   <div

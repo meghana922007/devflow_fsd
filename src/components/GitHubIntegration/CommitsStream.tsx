@@ -6,7 +6,6 @@ import {
   Copy,
   Check,
   Search,
-  Plus,
   Tag,
   Clock,
   ExternalLink
@@ -17,19 +16,12 @@ export const CommitsStream: React.FC = () => {
     activeProject,
     commits,
     branches,
-    addCommit,
-    tasks
+    syncRepoWithGitHub
   } = useApp();
 
   const [selectedBranch, setSelectedBranch] = useState<string>('all');
   const [commitSearch, setCommitSearch] = useState('');
   const [copiedSha, setCopiedSha] = useState<string | null>(null);
-
-  // Quick commit form state
-  const [showQuickCommit, setShowQuickCommit] = useState(false);
-  const [newMsg, setNewMsg] = useState('');
-  const [targetBranch, setTargetBranch] = useState('main');
-  const [linkedTaskId, setLinkedTaskId] = useState('');
 
   const projectCommits = commits.filter(c => c.projectId === activeProject.id);
 
@@ -49,20 +41,6 @@ export const CommitsStream: React.FC = () => {
     navigator.clipboard.writeText(sha);
     setCopiedSha(sha);
     setTimeout(() => setCopiedSha(null), 1800);
-  };
-
-  const handleCreateCommit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newMsg.trim()) return;
-
-    addCommit({
-      message: newMsg.trim(),
-      branch: targetBranch,
-      linkedTaskId: linkedTaskId || undefined
-    });
-
-    setNewMsg('');
-    setShowQuickCommit(false);
   };
 
   return (
@@ -101,11 +79,11 @@ export const CommitsStream: React.FC = () => {
           </div>
 
           <button
-            onClick={() => setShowQuickCommit(!showQuickCommit)}
+            onClick={() => void syncRepoWithGitHub()}
             className="btn-secondary"
             style={{ padding: '7px 14px', fontSize: '0.82rem' }}
           >
-            <Plus size={14} /> {showQuickCommit ? 'Cancel' : 'Push Commit'}
+            <GitCommit size={14} /> Sync commits
           </button>
         </div>
 
@@ -130,115 +108,6 @@ export const CommitsStream: React.FC = () => {
           />
         </div>
       </div>
-
-      {/* Quick Commit Box (Inline Expandable Form) */}
-      {showQuickCommit && (
-        <form
-          onSubmit={handleCreateCommit}
-          className="pastel-card animate-fade-in"
-          style={{
-            padding: '18px 22px',
-            backgroundColor: '#eef6f8',
-            border: '1px solid #c8d8e4',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '12px'
-          }}
-        >
-          <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#2b6777', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <GitCommit size={16} /> Record Git Commit to Repository
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '12px' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#1c3d44', marginBottom: '4px' }}>
-                Commit Message *
-              </label>
-              <input
-                type="text"
-                required
-                placeholder="e.g. feat(tasks): add priority filter to Kanban"
-                value={newMsg}
-                onChange={(e) => setNewMsg(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  borderRadius: 'var(--radius-sm)',
-                  border: '1px solid var(--border-color)',
-                  backgroundColor: '#ffffff',
-                  fontSize: '0.85rem',
-                  outline: 'none'
-                }}
-              />
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#1c3d44', marginBottom: '4px' }}>
-                Branch
-              </label>
-              <select
-                value={targetBranch}
-                onChange={(e) => setTargetBranch(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  borderRadius: 'var(--radius-sm)',
-                  border: '1px solid var(--border-color)',
-                  backgroundColor: '#ffffff',
-                  fontSize: '0.85rem',
-                  outline: 'none'
-                }}
-              >
-                {branches.filter(b => b.projectId === activeProject.id).map(b => (
-                  <option key={b.name} value={b.name}>{b.name}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#1c3d44', marginBottom: '4px' }}>
-                Link Task (Optional)
-              </label>
-              <select
-                value={linkedTaskId}
-                onChange={(e) => setLinkedTaskId(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  borderRadius: 'var(--radius-sm)',
-                  border: '1px solid var(--border-color)',
-                  backgroundColor: '#ffffff',
-                  fontSize: '0.85rem',
-                  outline: 'none'
-                }}
-              >
-                <option value="">None</option>
-                {tasks.filter(t => t.projectId === activeProject.id).map(t => (
-                  <option key={t.id} value={t.id}>{t.id}: {t.title.substring(0, 24)}...</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-            <button
-              type="button"
-              onClick={() => setShowQuickCommit(false)}
-              className="btn-secondary"
-              style={{ padding: '6px 14px', fontSize: '0.82rem' }}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="btn-primary"
-              style={{ padding: '6px 18px', fontSize: '0.82rem' }}
-            >
-              Push Commit
-            </button>
-          </div>
-        </form>
-      )}
 
       {/* Commits Timeline List */}
       {filteredCommits.length === 0 ? (
@@ -375,28 +244,30 @@ export const CommitsStream: React.FC = () => {
                   <span style={{ color: '#2b6777', fontWeight: 800 }}>-{commit.deletions}</span>
                 </div>
 
-                <a
-                  href={commit.htmlUrl || `https://github.com/meghana922007/devflow/commit/${commit.id}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  title="Open commit on GitHub.com"
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    padding: '4px 10px',
-                    borderRadius: 'var(--radius-pill)',
-                    backgroundColor: '#ffffff',
-                    border: '1px solid #c8d8e4',
-                    color: '#2b6777',
-                    fontSize: '0.72rem',
-                    fontWeight: 700,
-                    textDecoration: 'none',
-                    transition: 'all 0.15s ease'
-                  }}
-                >
-                  <ExternalLink size={11} /> GitHub ↗
-                </a>
+                {commit.htmlUrl && (
+                  <a
+                    href={commit.htmlUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="Open commit on GitHub.com"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      padding: '4px 10px',
+                      borderRadius: 'var(--radius-pill)',
+                      backgroundColor: '#ffffff',
+                      border: '1px solid #c8d8e4',
+                      color: '#2b6777',
+                      fontSize: '0.72rem',
+                      fontWeight: 700,
+                      textDecoration: 'none',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    <ExternalLink size={11} /> GitHub ↗
+                  </a>
+                )}
               </div>
             </div>
           ))}

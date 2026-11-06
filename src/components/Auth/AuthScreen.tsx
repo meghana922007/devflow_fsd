@@ -12,9 +12,10 @@ import {
 } from 'lucide-react';
 
 export const AuthScreen: React.FC = () => {
-  const { login, loginWithGithub, signup } = useApp();
+  const { login, loginWithGithub, signup, apiError } = useApp();
 
   const [mode, setMode] = useState<'login' | 'signup'>('login');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Login State
   const [email, setEmail] = useState('');
@@ -28,59 +29,57 @@ export const AuthScreen: React.FC = () => {
   const [role, setRole] = useState('Full Stack Engineer');
   const [githubUsername, setGithubUsername] = useState('');
 
-  const handleLoginSubmit = (e: React.FormEvent) => {
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
-    const res = login(email, password);
-    if (!res.success && res.error) {
-      setErrorMsg(res.error);
+    setIsSubmitting(true);
+    try {
+      const result = await login(email, password);
+      if (!result.success && result.error) setErrorMsg(result.error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const handleSignupSubmit = (e: React.FormEvent) => {
+  const handleSignupSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
-    const res = signup({
-      name: name.trim(),
-      email: signupEmail.trim(),
-      password: signupPassword.trim(),
-      role: role.trim(),
-      githubUsername: githubUsername.trim().replace('@', ''),
-      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'
-    });
-    if (!res.success && res.error) {
-      setErrorMsg(res.error);
+    setIsSubmitting(true);
+    try {
+      const result = await signup({
+        name: name.trim(),
+        email: signupEmail.trim(),
+        password: signupPassword,
+        role: role.trim(),
+        githubUsername: githubUsername.trim().replace('@', ''),
+        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'
+      });
+      if (!result.success && result.error) setErrorMsg(result.error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
-
-  // Dev utility — logic preserved, card hidden from UI
-  const fillQuickTest = (testEmail: string, testPass: string) => {
-    setEmail(testEmail);
-    setPassword(testPass);
-    setErrorMsg(null);
-  };
-  void fillQuickTest; // suppress unused warning
 
   const inputStyle: React.CSSProperties = {
     width: '100%',
     padding: '11px 14px 11px 40px',
-    background: '#080b16',
-    border: '1px solid rgba(0,245,255,0.25)',
-    color: '#e8f4fd',
-    fontSize: '0.88rem',
-    fontFamily: "'Share Tech Mono', monospace",
+    background: '#ffffff',
+    border: '1px solid #cbd5e1',
+    color: '#1e293b',
+    fontSize: '0.9rem',
+    fontFamily: 'inherit',
     outline: 'none',
-    borderRadius: '3px',
-    transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+    borderRadius: '8px',
+    transition: 'border-color 0.2s ease',
   };
 
   const labelStyle: React.CSSProperties = {
     display: 'block',
-    fontSize: '0.65rem',
-    fontFamily: "'Press Start 2P', monospace",
-    color: '#4a7c8e',
+    fontSize: '0.82rem',
+    fontWeight: 600,
+    fontFamily: 'inherit',
+    color: '#475569',
     marginBottom: '7px',
-    letterSpacing: '0.04em',
   };
 
   const iconStyle: React.CSSProperties = {
@@ -88,15 +87,15 @@ export const AuthScreen: React.FC = () => {
     left: '13px',
     top: '50%',
     transform: 'translateY(-50%)',
-    color: '#4a7c8e',
+    color: '#64748b',
   };
 
   return (
     <div
-      className="scanline-bg"
+      className="scanline-bg auth-screen"
       style={{
         minHeight: '100vh',
-        backgroundColor: '#0a0e1a',
+        backgroundColor: '#f7f8fa',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -104,33 +103,17 @@ export const AuthScreen: React.FC = () => {
         position: 'relative',
       }}
     >
-      {/* Ambient background blobs */}
-      <div style={{
-        position: 'fixed', top: '10%', left: '5%',
-        width: '320px', height: '320px',
-        borderRadius: '50%',
-        background: 'radial-gradient(circle, rgba(0,245,255,0.06) 0%, transparent 70%)',
-        pointerEvents: 'none',
-      }} />
-      <div style={{
-        position: 'fixed', bottom: '15%', right: '8%',
-        width: '260px', height: '260px',
-        borderRadius: '50%',
-        background: 'radial-gradient(circle, rgba(255,0,255,0.05) 0%, transparent 70%)',
-        pointerEvents: 'none',
-      }} />
-
       <div
-        className="animate-modal-pop"
+        className="animate-modal-pop auth-card"
         style={{
           width: '100%',
           maxWidth: '1000px',
           display: 'grid',
           gridTemplateColumns: '1fr 1.1fr',
-          borderRadius: '6px',
+          borderRadius: '12px',
           overflow: 'hidden',
-          border: '1px solid rgba(0,245,255,0.3)',
-          boxShadow: '0 0 60px rgba(0,245,255,0.08), 0 0 120px rgba(0,245,255,0.04)',
+          border: '1px solid #e2e8f0',
+          boxShadow: '0 12px 32px rgba(15,23,42,0.08)',
           position: 'relative',
           zIndex: 2,
         }}
@@ -138,114 +121,79 @@ export const AuthScreen: React.FC = () => {
         {/* ===== LEFT PANEL: Branding ===== */}
         <div
           style={{
-            background: 'linear-gradient(160deg, #080b16 0%, #0d1224 60%, #0a0e1a 100%)',
+            background: '#f1f5f9',
             padding: '52px 40px',
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'space-between',
-            borderRight: '1px solid rgba(0,245,255,0.15)',
+            borderRight: '1px solid #e2e8f0',
             position: 'relative',
             overflow: 'hidden',
           }}
         >
-          {/* Decorative pixel grid lines */}
-          <div style={{
-            position: 'absolute',
-            inset: 0,
-            backgroundImage: `
-              linear-gradient(rgba(0,245,255,0.04) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(0,245,255,0.04) 1px, transparent 1px)
-            `,
-            backgroundSize: '32px 32px',
-            pointerEvents: 'none',
-          }} />
-
           <div style={{ position: 'relative', zIndex: 1 }}>
-            {/* Logo mark */}
             <div style={{
-              width: '52px', height: '52px',
-              background: 'rgba(0,245,255,0.08)',
-              border: '2px solid rgba(0,245,255,0.5)',
+              width: '48px', height: '48px',
+              background: '#dbeafe',
+              border: '1px solid #bfdbfe',
+              borderRadius: '12px',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              marginBottom: '28px',
-              boxShadow: '0 0 20px rgba(0,245,255,0.2)',
+              marginBottom: '24px',
             }}>
-              <Sparkles size={24} color="#00f5ff" />
+              <Sparkles size={22} color="#2563eb" />
             </div>
 
-            <h1
-              className="pixel-glow"
-              style={{
-                fontFamily: "'Press Start 2P', monospace",
-                fontSize: '1.5rem',
-                color: '#00f5ff',
-                lineHeight: 1.4,
-                marginBottom: '20px',
-                letterSpacing: '0.02em',
-              }}
-            >
-              DEV<br />FLOW
+            <h1 style={{
+              fontSize: '1.8rem',
+              color: '#0f172a',
+              lineHeight: 1.2,
+              marginBottom: '20px',
+            }}>
+              DevFlowOne
             </h1>
 
             <p style={{
-              fontFamily: "'Share Tech Mono', monospace",
-              fontSize: '0.85rem',
-              color: '#4a7c8e',
+              fontSize: '0.95rem',
+              color: '#475569',
               lineHeight: 1.7,
-              marginBottom: '36px',
-              maxWidth: '280px',
+              marginBottom: '28px',
+              maxWidth: '340px',
             }}>
-              Unified developer intelligence platform. Kanban boards, issue tracking, GitHub integration & CI/CD pipelines in one workspace.
+              Your development workflow, in one place. Manage projects and tasks, track issues, review GitHub activity, and monitor builds.
             </p>
 
-            {/* Pixel-art stat bars */}
-            {[
-              { label: 'TASKS', color: '#00f5ff', pct: 78 },
-              { label: 'BUGS', color: '#ff2d55', pct: 42 },
-              { label: 'PIPELINES', color: '#39ff14', pct: 91 },
-            ].map(({ label, color, pct }) => (
-              <div key={label} style={{ marginBottom: '12px' }}>
-                <div style={{
-                  display: 'flex', justifyContent: 'space-between',
-                  fontFamily: "'Press Start 2P', monospace",
-                  fontSize: '0.5rem',
-                  color: '#4a7c8e',
-                  marginBottom: '5px',
+            <div style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: '8px',
+              color: '#334155',
+              fontSize: '0.84rem',
+            }}>
+              {['Projects & tasks', 'Issue tracking', 'GitHub activity', 'Build health'].map((feature) => (
+                <span key={feature} style={{
+                  padding: '6px 10px',
+                  background: '#ffffff',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '9999px',
                 }}>
-                  <span>{label}</span>
-                  <span style={{ color }}>{pct}%</span>
-                </div>
-                <div style={{
-                  height: '8px',
-                  background: 'rgba(255,255,255,0.06)',
-                  border: '1px solid rgba(255,255,255,0.08)',
-                }}>
-                  <div style={{
-                    height: '100%',
-                    width: `${pct}%`,
-                    background: color,
-                    boxShadow: `0 0 8px ${color}`,
-                  }} />
-                </div>
-              </div>
-            ))}
+                  {feature}
+                </span>
+              ))}
+            </div>
           </div>
 
-          {/* Bottom version tag */}
           <div style={{
             position: 'relative', zIndex: 1,
-            fontFamily: "'Press Start 2P', monospace",
-            fontSize: '0.45rem',
-            color: '#2a4a5a',
-            letterSpacing: '0.06em',
+            fontSize: '0.82rem',
+            color: '#64748b',
           }}>
-            SYS v2.0.0 &nbsp;|&nbsp; ALL SYSTEMS NOMINAL
+            A unified workspace for your team.
           </div>
         </div>
 
         {/* ===== RIGHT PANEL: Forms ===== */}
         <div style={{
-          background: '#0d1224',
+          background: '#ffffff',
           padding: '48px 42px',
           display: 'flex',
           flexDirection: 'column',
@@ -254,9 +202,9 @@ export const AuthScreen: React.FC = () => {
           {/* Mode toggle */}
           <div style={{
             display: 'flex',
-            background: '#080b16',
-            border: '1px solid rgba(0,245,255,0.2)',
-            borderRadius: '4px',
+            background: '#f8fafc',
+            border: '1px solid #e2e8f0',
+            borderRadius: '8px',
             marginBottom: '30px',
             overflow: 'hidden',
           }}>
@@ -268,35 +216,33 @@ export const AuthScreen: React.FC = () => {
                 style={{
                   flex: 1,
                   padding: '10px 16px',
-                  fontFamily: "'Press Start 2P', monospace",
-                  fontSize: '0.5rem',
-                  letterSpacing: '0.04em',
+                  fontSize: '0.88rem',
+                  fontWeight: 600,
                   background: mode === m
-                    ? 'rgba(0,245,255,0.12)'
+                    ? '#ffffff'
                     : 'transparent',
-                  color: mode === m ? '#00f5ff' : '#2a4a5a',
-                  borderRight: m === 'login' ? '1px solid rgba(0,245,255,0.2)' : 'none',
-                  boxShadow: mode === m ? 'inset 0 0 12px rgba(0,245,255,0.08)' : 'none',
+                  color: mode === m ? '#1d4ed8' : '#64748b',
+                  borderRight: m === 'login' ? '1px solid #e2e8f0' : 'none',
+                  boxShadow: 'none',
                   transition: 'all 0.15s ease',
                 }}
               >
-                {m === 'login' ? '[ SIGN IN ]' : '[ REGISTER ]'}
+                {m === 'login' ? 'Sign in' : 'Create account'}
               </button>
             ))}
           </div>
 
           {/* Error banner */}
-          {errorMsg && (
+          {(errorMsg || apiError) && (
             <div
               className="animate-fade-in"
               style={{
-                background: 'rgba(255,45,85,0.1)',
-                border: '1px solid rgba(255,45,85,0.4)',
-                borderRadius: '3px',
+                background: '#fef2f2',
+                border: '1px solid #fecaca',
+                borderRadius: '8px',
                 padding: '10px 14px',
-                color: '#ff2d55',
+                color: '#b91c1c',
                 fontSize: '0.78rem',
-                fontFamily: "'Share Tech Mono', monospace",
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
@@ -305,7 +251,7 @@ export const AuthScreen: React.FC = () => {
               }}
             >
               <AlertCircle size={15} />
-              <span>&gt; ERR: {errorMsg}</span>
+              <span>{errorMsg || apiError}</span>
             </div>
           )}
 
@@ -323,11 +269,11 @@ export const AuthScreen: React.FC = () => {
                     onChange={(e) => setEmail(e.target.value)}
                     style={inputStyle}
                     onFocus={(e) => {
-                      e.target.style.borderColor = 'rgba(0,245,255,0.7)';
-                      e.target.style.boxShadow = '0 0 12px rgba(0,245,255,0.2)';
+                      e.target.style.borderColor = '#2563eb';
+                      e.target.style.boxShadow = '0 0 0 3px rgba(37,99,235,0.12)';
                     }}
                     onBlur={(e) => {
-                      e.target.style.borderColor = 'rgba(0,245,255,0.25)';
+                      e.target.style.borderColor = '#cbd5e1';
                       e.target.style.boxShadow = 'none';
                     }}
                   />
@@ -346,11 +292,11 @@ export const AuthScreen: React.FC = () => {
                     onChange={(e) => setPassword(e.target.value)}
                     style={inputStyle}
                     onFocus={(e) => {
-                      e.target.style.borderColor = 'rgba(0,245,255,0.7)';
-                      e.target.style.boxShadow = '0 0 12px rgba(0,245,255,0.2)';
+                      e.target.style.borderColor = '#2563eb';
+                      e.target.style.boxShadow = '0 0 0 3px rgba(37,99,235,0.12)';
                     }}
                     onBlur={(e) => {
-                      e.target.style.borderColor = 'rgba(0,245,255,0.25)';
+                      e.target.style.borderColor = '#cbd5e1';
                       e.target.style.boxShadow = 'none';
                     }}
                   />
@@ -360,24 +306,25 @@ export const AuthScreen: React.FC = () => {
               <button
                 type="submit"
                 className="btn-primary"
+                disabled={isSubmitting}
                 style={{ width: '100%', justifyContent: 'center', padding: '13px', marginTop: '6px', fontSize: '0.72rem' }}
               >
-                ENTER WORKSPACE <ArrowRight size={15} />
+                {isSubmitting ? 'SIGNING IN…' : 'ENTER WORKSPACE'} <ArrowRight size={15} />
               </button>
 
               <div style={{
                 display: 'flex', alignItems: 'center', gap: '12px',
-                color: '#2a4a5a', fontSize: '0.7rem',
-                fontFamily: "'Share Tech Mono', monospace",
+                color: '#94a3b8', fontSize: '0.8rem',
               }}>
-                <div style={{ flex: 1, height: '1px', background: 'rgba(0,245,255,0.1)' }} />
+                <div style={{ flex: 1, height: '1px', background: '#e2e8f0' }} />
                 <span>OR</span>
-                <div style={{ flex: 1, height: '1px', background: 'rgba(0,245,255,0.1)' }} />
+                <div style={{ flex: 1, height: '1px', background: '#e2e8f0' }} />
               </div>
 
               <button
                 type="button"
                 onClick={loginWithGithub}
+                disabled={isSubmitting}
                 className="btn-secondary"
                 style={{ width: '100%', justifyContent: 'center', padding: '12px', fontSize: '0.72rem' }}
               >
@@ -398,11 +345,11 @@ export const AuthScreen: React.FC = () => {
                     onChange={(e) => setName(e.target.value)}
                     style={inputStyle}
                     onFocus={(e) => {
-                      e.target.style.borderColor = 'rgba(0,245,255,0.7)';
-                      e.target.style.boxShadow = '0 0 12px rgba(0,245,255,0.2)';
+                      e.target.style.borderColor = '#2563eb';
+                      e.target.style.boxShadow = '0 0 0 3px rgba(37,99,235,0.12)';
                     }}
                     onBlur={(e) => {
-                      e.target.style.borderColor = 'rgba(0,245,255,0.25)';
+                      e.target.style.borderColor = '#cbd5e1';
                       e.target.style.boxShadow = 'none';
                     }}
                   />
@@ -421,11 +368,11 @@ export const AuthScreen: React.FC = () => {
                     onChange={(e) => setSignupEmail(e.target.value)}
                     style={inputStyle}
                     onFocus={(e) => {
-                      e.target.style.borderColor = 'rgba(0,245,255,0.7)';
-                      e.target.style.boxShadow = '0 0 12px rgba(0,245,255,0.2)';
+                      e.target.style.borderColor = '#2563eb';
+                      e.target.style.boxShadow = '0 0 0 3px rgba(37,99,235,0.12)';
                     }}
                     onBlur={(e) => {
-                      e.target.style.borderColor = 'rgba(0,245,255,0.25)';
+                      e.target.style.borderColor = '#cbd5e1';
                       e.target.style.boxShadow = 'none';
                     }}
                   />
@@ -433,23 +380,23 @@ export const AuthScreen: React.FC = () => {
               </div>
 
               <div>
-                <label style={labelStyle}>PASSWORD (MIN 6)</label>
+                <label style={labelStyle}>PASSWORD (MIN 8)</label>
                 <div style={{ position: 'relative' }}>
                   <Lock size={15} style={iconStyle} />
                   <input
                     type="password"
                     required
-                    minLength={6}
+                    minLength={8}
                     placeholder="••••••••"
                     value={signupPassword}
                     onChange={(e) => setSignupPassword(e.target.value)}
                     style={inputStyle}
                     onFocus={(e) => {
-                      e.target.style.borderColor = 'rgba(0,245,255,0.7)';
-                      e.target.style.boxShadow = '0 0 12px rgba(0,245,255,0.2)';
+                      e.target.style.borderColor = '#2563eb';
+                      e.target.style.boxShadow = '0 0 0 3px rgba(37,99,235,0.12)';
                     }}
                     onBlur={(e) => {
-                      e.target.style.borderColor = 'rgba(0,245,255,0.25)';
+                      e.target.style.borderColor = '#cbd5e1';
                       e.target.style.boxShadow = 'none';
                     }}
                   />
@@ -487,11 +434,11 @@ export const AuthScreen: React.FC = () => {
                       onChange={(e) => setGithubUsername(e.target.value)}
                       style={inputStyle}
                       onFocus={(e) => {
-                        e.target.style.borderColor = 'rgba(0,245,255,0.7)';
-                        e.target.style.boxShadow = '0 0 12px rgba(0,245,255,0.2)';
+                        e.target.style.borderColor = '#2563eb';
+                        e.target.style.boxShadow = '0 0 0 3px rgba(37,99,235,0.12)';
                       }}
                       onBlur={(e) => {
-                        e.target.style.borderColor = 'rgba(0,245,255,0.25)';
+                        e.target.style.borderColor = '#cbd5e1';
                         e.target.style.boxShadow = 'none';
                       }}
                     />
@@ -502,9 +449,10 @@ export const AuthScreen: React.FC = () => {
               <button
                 type="submit"
                 className="btn-primary"
+                disabled={isSubmitting}
                 style={{ width: '100%', justifyContent: 'center', padding: '12px', marginTop: '4px', fontSize: '0.68rem' }}
               >
-                REGISTER &amp; ENTER <ArrowRight size={14} />
+                {isSubmitting ? 'CREATING ACCOUNT…' : 'REGISTER & ENTER'} <ArrowRight size={14} />
               </button>
             </form>
           )}

@@ -1,30 +1,33 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { Mail, Kanban, Bug, ExternalLink, FolderGit2, UserPlus, Edit2, Trash2, UserCheck } from 'lucide-react';
+import { Mail, Kanban, Bug, ExternalLink, FolderGit2, UserPlus, Trash2 } from 'lucide-react';
 
 export const TeamSettings: React.FC = () => {
   const {
     activeProject,
     tasks,
     issues,
-    users,
-    setEditingUser,
-    setIsUserModalOpen,
     removeMemberFromProject,
-    addMemberToProject
+    addMemberToProject,
+    currentUser,
+    apiError,
   } = useApp();
 
-  const [selectedUnassignedUser, setSelectedUnassignedUser] = useState('');
+  const [memberEmail, setMemberEmail] = useState('');
+  const [isAddingMember, setIsAddingMember] = useState(false);
 
   const projectTasks = tasks.filter(t => t.projectId === activeProject.id);
   const projectIssues = issues.filter(i => i.projectId === activeProject.id);
 
-  const unassignedUsers = users.filter(u => !activeProject.teamMembers.some(m => m.id === u.id));
-
-  const handleAssignExisting = () => {
-    if (!selectedUnassignedUser) return;
-    addMemberToProject(activeProject.id, selectedUnassignedUser);
-    setSelectedUnassignedUser('');
+  const handleAddMember = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!memberEmail.trim()) return;
+    setIsAddingMember(true);
+    try {
+      if (await addMemberToProject(activeProject.id, memberEmail.trim())) setMemberEmail('');
+    } finally {
+      setIsAddingMember(false);
+    }
   };
 
   return (
@@ -66,51 +69,38 @@ export const TeamSettings: React.FC = () => {
             Assigned Engineering Team ({activeProject.teamMembers.length} Engineers)
           </h3>
           <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-            Manage team members, update GitHub handles, roles, and project assignments.
+            Add registered DevFlow users to this project or remove their access.
           </p>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          {unassignedUsers.length > 0 && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <select
-                value={selectedUnassignedUser}
-                onChange={(e) => setSelectedUnassignedUser(e.target.value)}
+          <form onSubmit={handleAddMember} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <input
+                type="email"
+                required
+                value={memberEmail}
+                onChange={(e) => setMemberEmail(e.target.value)}
+                placeholder="Registered user's email"
                 style={{
                   padding: '8px 12px',
-                  borderRadius: 'var(--radius-pill)',
+                  borderRadius: 'var(--radius-sm)',
                   border: '1px solid var(--border-color)',
                   backgroundColor: 'var(--bg-card)',
-                  fontSize: '0.82rem',
-                  fontWeight: 600
+                  fontSize: '0.82rem'
                 }}
-              >
-                <option value="">Select Existing Member...</option>
-                {unassignedUsers.map(u => (
-                  <option key={u.id} value={u.id}>{u.name} ({u.role})</option>
-                ))}
-              </select>
-
+              />
               <button
-                onClick={handleAssignExisting}
+                type="submit"
                 className="btn-secondary"
-                disabled={!selectedUnassignedUser}
+                disabled={isAddingMember}
                 style={{ padding: '8px 14px', fontSize: '0.82rem' }}
               >
-                <UserCheck size={14} /> Assign
+                <UserPlus size={14} /> Add member
               </button>
-            </div>
-          )}
-
-          <button
-            onClick={() => { setEditingUser(null); setIsUserModalOpen(true); }}
-            className="btn-primary"
-            style={{ backgroundColor: '#0284C7', padding: '9px 18px', fontSize: '0.85rem' }}
-          >
-            <UserPlus size={16} /> Add New Engineer
-          </button>
+          </form>
         </div>
       </div>
+      {apiError && <p role="alert" style={{ color: 'var(--pastel-rose-dark)', fontSize: '0.85rem' }}>{apiError}</p>}
 
       {/* Team Roster Grid */}
       <div style={{
@@ -120,7 +110,7 @@ export const TeamSettings: React.FC = () => {
       }}>
         {activeProject.teamMembers.length === 0 ? (
           <div style={{ gridColumn: '1 / -1', padding: '40px', textAlign: 'center', backgroundColor: 'var(--bg-card)', borderRadius: 'var(--radius-md)', border: '1px dashed var(--border-color)', color: 'var(--text-muted)' }}>
-            No team members assigned to this project yet. Click "+ Add New Engineer" to add team members.
+            No team members are assigned to this project yet.
           </div>
         ) : (
           activeProject.teamMembers.map(member => {
@@ -147,22 +137,15 @@ export const TeamSettings: React.FC = () => {
                       </div>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    {member.id !== currentUser?.id && (
                       <button
-                        onClick={() => { setEditingUser(member); setIsUserModalOpen(true); }}
-                        title="Edit Member Details"
-                        style={{ padding: '6px', color: 'var(--pastel-sky-dark)', borderRadius: 'var(--radius-sm)' }}
-                      >
-                        <Edit2 size={15} />
-                      </button>
-                      <button
-                        onClick={() => removeMemberFromProject(activeProject.id, member.id)}
+                        onClick={() => void removeMemberFromProject(activeProject.id, member.id)}
                         title="Remove from Project"
                         style={{ padding: '6px', color: 'var(--pastel-rose-dark)', borderRadius: 'var(--radius-sm)' }}
                       >
                         <Trash2 size={15} />
                       </button>
-                    </div>
+                    )}
                   </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '16px', backgroundColor: 'var(--bg-main)', padding: '12px', borderRadius: 'var(--radius-sm)' }}>
@@ -189,12 +172,6 @@ export const TeamSettings: React.FC = () => {
                     </span>
                   </div>
 
-                  <button
-                    onClick={() => { setEditingUser(member); setIsUserModalOpen(true); }}
-                    style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--pastel-sky-dark)' }}
-                  >
-                    Edit Profile →
-                  </button>
                 </div>
               </div>
             );

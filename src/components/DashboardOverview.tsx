@@ -1,6 +1,7 @@
 import React from 'react';
 import { useApp } from '../context/AppContext';
 import { Kanban, Bug, CheckCircle2, ArrowUpRight, Activity, Cpu } from 'lucide-react';
+import { AIAssistantCard } from './AIAssistantCard';
 
 export const DashboardOverview: React.FC = () => {
   const { tasks, issues, activities, activeProject, setActiveTab, workflowRuns } = useApp();
@@ -25,7 +26,7 @@ export const DashboardOverview: React.FC = () => {
   const passRate = projectRuns.length > 0 ? Math.round((passedPipelines / projectRuns.length) * 100) : 100;
 
   return (
-    <div style={{ padding: '24px 32px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+    <div className="dashboard-overview" style={{ padding: '24px 32px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
       {/* Top Banner - Solid Color */}
       <div style={{
         backgroundColor: '#2b6777',
@@ -41,13 +42,13 @@ export const DashboardOverview: React.FC = () => {
       }}>
         <div>
           <span style={{ fontSize: '0.78rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', backgroundColor: 'rgba(255,255,255,0.2)', padding: '4px 12px', borderRadius: 'var(--radius-pill)' }}>
-            UNIFIED WORKFLOW TELEMETRY
+            DEVFLOWONE WORKSPACE
           </span>
           <h2 style={{ fontSize: '1.6rem', fontWeight: 800, marginTop: '10px', marginBottom: '6px' }}>
-            Welcome back to {activeProject.name}
+            Your development workflow, in one place.
           </h2>
           <p style={{ fontSize: '0.9rem', opacity: 0.9 }}>
-            Modules 1, 2, 3 & 4 operational. {inProgressCount} tasks in progress, {openBugs.length} bugs tracked, {passRate}% CI/CD pass rate.
+            {activeProject.name}: {inProgressCount} tasks in progress, {openBugs.length} open issues, and {passRate}% CI/CD pass rate.
           </p>
         </div>
 
@@ -107,11 +108,11 @@ export const DashboardOverview: React.FC = () => {
       </div>
 
       {/* 4 Summary Stat Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '18px' }}>
+      <div className="dashboard-stats" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '18px' }}>
         <div className="pastel-card" style={{ padding: '20px', backgroundColor: '#F0F7FF', border: '1px solid var(--pastel-sky)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
             <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--pastel-sky-text)', textTransform: 'uppercase' }}>
-              MODULE 1: TASKS
+              Tasks
             </span>
             <Kanban size={18} color="var(--pastel-sky-text)" />
           </div>
@@ -126,7 +127,7 @@ export const DashboardOverview: React.FC = () => {
         <div className="pastel-card" style={{ padding: '20px', backgroundColor: '#FFF0F3', border: '1px solid var(--pastel-coral)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
             <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--pastel-coral-dark)', textTransform: 'uppercase' }}>
-              MODULE 2: BUGS
+              Open issues
             </span>
             <Bug size={18} color="var(--pastel-coral-dark)" />
           </div>
@@ -141,7 +142,7 @@ export const DashboardOverview: React.FC = () => {
         <div className="pastel-card" style={{ padding: '20px', backgroundColor: '#F0FAF5', border: '1px solid var(--pastel-mint)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
             <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--pastel-mint-dark)', textTransform: 'uppercase' }}>
-              RESOLVED DEFECTS
+              Resolved issues
             </span>
             <CheckCircle2 size={18} color="var(--pastel-mint-dark)" />
           </div>
@@ -156,7 +157,7 @@ export const DashboardOverview: React.FC = () => {
         <div className="pastel-card" style={{ padding: '20px', backgroundColor: '#F0FDF4', border: '1px solid #bbf7d0' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
             <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#16a34a', textTransform: 'uppercase' }}>
-              MODULE 4: CI/CD HEALTH
+              CI/CD health
             </span>
             <Cpu size={18} color="#16a34a" />
           </div>
@@ -170,14 +171,14 @@ export const DashboardOverview: React.FC = () => {
       </div>
 
       {/* Split Section */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '20px' }}>
+      <div className="dashboard-split" style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '20px' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div className="pastel-card" style={{ padding: '24px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Kanban size={18} color="var(--pastel-lavender-dark)" />
                 <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-main)' }}>
-                  Module 1: Kanban Board State Distribution
+                  Task status
                 </h3>
               </div>
               <button onClick={() => setActiveTab('kanban')} style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--pastel-lavender-dark)' }}>
@@ -210,7 +211,7 @@ export const DashboardOverview: React.FC = () => {
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Bug size={18} color="var(--pastel-rose-dark)" />
                 <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-main)' }}>
-                  Module 2: Defect Severity Breakdown
+                  Recent issues
                 </h3>
               </div>
               <button onClick={() => setActiveTab('issues')} style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--pastel-rose-dark)' }}>
@@ -249,7 +250,7 @@ export const DashboardOverview: React.FC = () => {
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '18px', paddingBottom: '12px', borderBottom: '1px solid var(--border-subtle)' }}>
             <Activity size={18} color="var(--pastel-lavender-dark)" />
             <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-main)' }}>
-              Real-Time Activity Feed
+              Recent activity
             </h3>
           </div>
 
@@ -279,6 +280,7 @@ export const DashboardOverview: React.FC = () => {
           </div>
         </div>
       </div>
+      <AIAssistantCard />
     </div>
   );
 };

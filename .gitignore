@@ -9,8 +9,13 @@ lerna-debug.log*
 
 node_modules
 dist
+dist-server
 dist-ssr
+coverage
 *.local
+test-results
+playwright-report
+.tsupgrader/
 
 # Editor directories and files
 .vscode/*

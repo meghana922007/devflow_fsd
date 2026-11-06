@@ -1,18 +1,10 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useCallback, useContext, useState, useEffect } from 'react';
 import type { Project, Task, Issue, TaskStage, IssueStatus, ActivityItem, User, PullRequest, Commit, Branch, WebhookEvent, RepoSettings, WorkflowRun } from '../types';
-import {
-  parseGitHubRepo,
-  fetchGitHubRepoDetails,
-  fetchGitHubCommits,
-  fetchGitHubBranches,
-  fetchGitHubPullRequests,
-  fetchUserPublicRepos,
-  checkRateLimit,
-  fetchGitHubWorkflowRuns
-} from '../services/githubService';
+import { parseGitHubRepo } from '../services/githubService';
 import type { GitHubRateLimitInfo, UserPublicRepo } from '../services/githubService';
+import { ApiError, apiRequest, reportApiError } from '../services/api';
+import { io } from 'socket.io-client';
 import {
-  mockProjects,
   initialTasks,
   initialIssues,
   mockActivities,
@@ -29,11 +21,12 @@ interface AppContextType {
   // Authentication State
   isAuthenticated: boolean;
   currentUser: User | null;
-  login: (email: string, password?: string) => { success: boolean; error?: string };
+  apiError: string | null;
+  clearApiError: () => void;
+  login: (email: string, password?: string) => Promise<{ success: boolean; error?: string }>;
   loginWithGithub: () => void;
-  signup: (userData: Omit<User, 'id'> & { password?: string }) => { success: boolean; error?: string };
+  signup: (userData: Omit<User, 'id'> & { password?: string }) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
-  switchUser: (user: User) => void;
 
   currentView: 'hub' | 'workspace';
   setCurrentView: (view: 'hub' | 'workspace') => void;
@@ -42,30 +35,27 @@ interface AppContextType {
   projects: Project[];
   selectProject: (project: Project) => void;
   backToHub: () => void;
-  addProject: (project: Omit<Project, 'id' | 'createdAt'>) => void;
+  addProject: (project: Omit<Project, 'id' | 'createdAt'>) => Promise<boolean>;
   
-  activeTab: 'dashboard' | 'kanban' | 'issues' | 'team' | 'github' | 'cicd';
-  setActiveTab: (tab: 'dashboard' | 'kanban' | 'issues' | 'team' | 'github' | 'cicd') => void;
+  activeTab: 'dashboard' | 'kanban' | 'issues' | 'team' | 'github' | 'cicd' | 'ai';
+  setActiveTab: (tab: 'dashboard' | 'kanban' | 'issues' | 'team' | 'github' | 'cicd' | 'ai') => void;
   
   // Team Member Management
   users: User[];
-  addUser: (user: Omit<User, 'id'>) => void;
-  updateUser: (userId: string, updates: Partial<User>) => void;
-  deleteUser: (userId: string) => void;
-  addMemberToProject: (projectId: string, userId: string) => void;
-  removeMemberFromProject: (projectId: string, userId: string) => void;
+  addMemberToProject: (projectId: string, email: string) => Promise<boolean>;
+  removeMemberFromProject: (projectId: string, userId: string) => Promise<boolean>;
 
   tasks: Task[];
   moveTaskStage: (taskId: string, newStage: TaskStage) => void;
-  addTask: (task: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => void;
-  updateTask: (taskId: string, updates: Partial<Task>) => void;
+  addTask: (task: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => Promise<boolean>;
+  updateTask: (taskId: string, updates: Partial<Task>) => Promise<boolean>;
   deleteTask: (taskId: string) => void;
   toggleSubTask: (taskId: string, subtaskId: string) => void;
   
   issues: Issue[];
-  addIssue: (issue: Omit<Issue, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  addIssue: (issue: Omit<Issue, 'id' | 'createdAt' | 'updatedAt'>) => Promise<boolean>;
   updateIssueStatus: (issueId: string, newStatus: IssueStatus) => void;
-  updateIssue: (issueId: string, updates: Partial<Issue>) => void;
+  updateIssue: (issueId: string, updates: Partial<Issue>) => Promise<boolean>;
   deleteIssue: (issueId: string) => void;
 
   // Module 3: GitHub Integration
@@ -82,24 +72,21 @@ interface AppContextType {
     linkedTaskId?: string;
     linkedIssueId?: string;
     isDraft?: boolean;
-  }) => void;
+  }) => Promise<boolean>;
   mergePullRequest: (prId: string) => void;
   closePullRequest: (prId: string) => void;
-  addCommit: (commitData: {
-    message: string;
-    branch?: string;
-    linkedTaskId?: string;
-    additions?: number;
-    deletions?: number;
-  }) => void;
   simulateWebhook: (eventType: 'push' | 'pull_request' | 'workflow_run') => void;
-  syncRepoWithGitHub: (customUrl?: string, forceRefresh?: boolean) => Promise<void>;
+  syncRepoWithGitHub: (customUrl?: string, forceRefresh?: boolean) => Promise<boolean>;
   updateRepoSettings: (settings: Partial<RepoSettings>) => void;
   isSyncingGitHub: boolean;
   githubRateLimit: GitHubRateLimitInfo | null;
   userPublicRepos: UserPublicRepo[];
-  fetchUserRepos: (username?: string) => Promise<void>;
-  switchGitRepo: (repoUrl: string) => Promise<void>;
+  githubAccount: { connected: boolean; username: string | null };
+  refreshGitHubAccount: () => Promise<void>;
+  saveGitHubToken: (token: string) => Promise<boolean>;
+  removeGitHubToken: () => Promise<boolean>;
+  fetchUserRepos: () => Promise<void>;
+  switchGitRepo: (repoUrl: string) => Promise<boolean>;
   selectedPRForDiff: PullRequest | null;
   setSelectedPRForDiff: (pr: PullRequest | null) => void;
   isNewPRModalOpen: boolean;
@@ -120,7 +107,7 @@ interface AppContextType {
     branch: string;
     runTests?: boolean;
     verbose?: boolean;
-  }) => void;
+  }) => Promise<boolean>;
   cancelWorkflowRun: (runId: string) => void;
   rerunWorkflowRun: (runId: string) => void;
   isFetchingWorkflows: boolean;
@@ -154,51 +141,29 @@ interface AppContextType {
   isNewProjectModalOpen: boolean;
   setIsNewProjectModalOpen: (open: boolean) => void;
 
-  isUserModalOpen: boolean;
-  setIsUserModalOpen: (open: boolean) => void;
-  editingUser: User | null;
-  setEditingUser: (user: User | null) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
-
-// Helper to load persistent users DB
-const getStoredUsers = (): User[] => {
-  try {
-    const saved = localStorage.getItem('devflow_users_db');
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-    }
-  } catch (e) {
-    console.error(e);
-  }
-  localStorage.setItem('devflow_users_db', JSON.stringify(mockUsers));
-  return mockUsers;
-};
-
-// Helper to load current session (starts as null if not logged in)
-const getStoredSession = (): User | null => {
-  try {
-    const saved = localStorage.getItem('devflow_session_user');
-    if (saved) return JSON.parse(saved);
-  } catch (e) {
-    console.error(e);
-  }
-  return null;
+const emptyProject: Project = {
+  id: '',
+  name: '',
+  key: '',
+  description: '',
+  color: '#2563eb',
+  teamMembers: [],
 };
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [projects, setProjects] = useState<Project[]>(mockProjects);
-  const [activeProject, setActiveProject] = useState<Project>(mockProjects[0]);
-  const [users, setUsers] = useState<User[]>(getStoredUsers);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [activeProject, setActiveProject] = useState<Project>(emptyProject);
+  const [users, setUsers] = useState<User[]>([]);
   
-  // Real Persistent Authentication State
-  const [currentUser, setCurrentUser] = useState<User | null>(getStoredSession);
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => !!getStoredSession());
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
 
   const [currentView, setCurrentView] = useState<'hub' | 'workspace'>('hub');
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'kanban' | 'issues' | 'team' | 'github' | 'cicd'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'kanban' | 'issues' | 'team' | 'github' | 'cicd' | 'ai'>('dashboard');
   
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
   const [issues, setIssues] = useState<Issue[]>(initialIssues);
@@ -207,7 +172,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Module 3: GitHub Integration State
   const [pullRequests, setPullRequests] = useState<PullRequest[]>(mockPullRequests);
   const [commits, setCommits] = useState<Commit[]>(mockCommits);
-  const [branches, setBranches] = useState<Branch[]>(mockBranches);
+  const [branches] = useState<Branch[]>(mockBranches);
   const [webhookEvents, setWebhookEvents] = useState<WebhookEvent[]>(mockWebhookEvents);
   const [repoSettings, setRepoSettings] = useState<RepoSettings>(defaultRepoSettings);
   const [selectedPRForDiff, setSelectedPRForDiff] = useState<PullRequest | null>(null);
@@ -215,8 +180,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isWebhookSimulatorOpen, setIsWebhookSimulatorOpen] = useState(false);
   const [isRepoSettingsModalOpen, setIsRepoSettingsModalOpen] = useState(false);
   const [isSyncingGitHub, setIsSyncingGitHub] = useState(false);
-  const [githubRateLimit, setGithubRateLimit] = useState<GitHubRateLimitInfo | null>(null);
+  const [githubRateLimit] = useState<GitHubRateLimitInfo | null>(null);
   const [userPublicRepos, setUserPublicRepos] = useState<UserPublicRepo[]>([]);
+  const [githubAccount, setGithubAccount] = useState<{ connected: boolean; username: string | null }>({
+    connected: false,
+    username: null,
+  });
 
   // Module 4: CI/CD Monitoring State
   const [workflowRuns, setWorkflowRuns] = useState<WorkflowRun[]>(mockWorkflowRuns);
@@ -238,119 +207,179 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [isNewProjectModalOpen, setIsNewProjectModalOpen] = useState(false);
 
-  const [isUserModalOpen, setIsUserModalOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<User | null>(null);
 
-  // Real Database Authentication Handlers
-  const login = (email: string, password?: string): { success: boolean; error?: string } => {
-    const cleanEmail = email.trim().toLowerCase();
-    const cleanPassword = (password || '').trim();
+  const loadWorkspace = async () => {
+    const workspace = await apiRequest<{
+      projects: Project[];
+      tasks: (Task & { assigneeId: string | null; dueDate: string | null })[];
+      issues: (Issue & { assigneeId: string | null })[];
+      activities: ActivityItem[];
+      commits: (Commit & { sha: string; committedAt: string; authorName: string; authorEmail: string; htmlUrl?: string })[];
+      pullRequests: (PullRequest & { authorName: string; htmlUrl?: string; status: string })[];
+      webhookEvents: WebhookEvent[];
+      workflowRuns: (WorkflowRun & { status: string; startedAt: string; completedAt?: string })[];
+    }>('/workspace');
+    setProjects(workspace.projects);
+    setTasks(workspace.tasks.map(task => ({
+      ...task,
+      assigneeId: task.assigneeId ?? '',
+      dueDate: task.dueDate ?? '',
+      tags: Array.isArray(task.tags) ? task.tags : [],
+      subtasks: Array.isArray(task.subtasks) ? task.subtasks : [],
+    })));
+    setIssues(workspace.issues.map(issue => ({
+      ...issue,
+      assigneeId: issue.assigneeId ?? '',
+      reproductionSteps: Array.isArray(issue.reproductionSteps) ? issue.reproductionSteps : [],
+    })));
+    setActivities(workspace.activities);
+    setCommits(workspace.commits.map(commit => ({
+      ...commit,
+      id: commit.sha,
+      timestamp: commit.committedAt,
+      githubUsername: '',
+      additions: 0,
+      deletions: 0,
+    })));
+    setPullRequests(workspace.pullRequests.map(pr => ({
+      ...pr,
+      status: pr.status === 'merged' || pr.status === 'closed' || pr.status === 'draft' ? pr.status : 'open',
+      reviewStatus: 'review_required',
+      ciStatus: 'pending',
+      additions: 0,
+      deletions: 0,
+      changedFilesCount: 0,
+      mergeable: true,
+      diffFiles: [],
+      authorId: '',
+      authorAvatar: '',
+      githubUsername: '',
+    })));
+    setWebhookEvents(workspace.webhookEvents);
+    setWorkflowRuns(workspace.workflowRuns.map(run => ({
+      ...run,
+      status: run.status === 'success' || run.status === 'failure' || run.status === 'cancelled' || run.status === 'queued'
+        ? run.status
+        : 'in_progress',
+      workflowFileName: '',
+      event: 'push',
+      commitMessage: '',
+      authorAvatar: '',
+      githubUsername: '',
+      duration: '',
+      durationSeconds: 0,
+      jobs: [],
+    })));
+    const members = workspace.projects.flatMap(project => project.teamMembers);
+    setUsers([...new Map(members.map(member => [member.id, member])).values()]);
+    setActiveProject(previous => workspace.projects.find(project => project.id === previous.id) ?? workspace.projects[0] ?? emptyProject);
+  };
 
-    if (!cleanEmail) {
-      return { success: false, error: 'Please enter your email or username.' };
+  useEffect(() => {
+    let active = true;
+    void apiRequest<{ user: User }>('/auth/me')
+      .then(async ({ user }) => {
+        if (!active) return;
+        setCurrentUser(user);
+        setIsAuthenticated(true);
+        await loadWorkspace();
+      })
+      .catch(error => {
+        if (!active) return;
+        if (!(error instanceof ApiError && error.status === 401)) setApiError(reportApiError(error));
+      });
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const socket = io({ withCredentials: true });
+    const refresh = () => {
+      void loadWorkspace().catch(error => setApiError(reportApiError(error)));
+    };
+    socket.on('workspace.updated', refresh);
+    socket.on('github.webhook', refresh);
+    socket.on('connect_error', error => setApiError(`Real-time connection failed: ${error.message}`));
+    return () => {
+      socket.disconnect();
+    };
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    let active = true;
+    void apiRequest<{ connected: boolean; username: string | null }>('/github/status')
+      .then(status => {
+        if (active) setGithubAccount(status);
+      })
+      .catch(error => {
+        if (active) setApiError(reportApiError(error));
+      });
+    return () => { active = false; };
+  }, [isAuthenticated]);
+
+  const login = async (email: string, password?: string) => {
+    try {
+      const { user } = await apiRequest<{ user: User }>('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
+      });
+      setCurrentUser(user);
+      setIsAuthenticated(true);
+      setCurrentView('hub');
+      setApiError(null);
+      await loadWorkspace();
+      return { success: true };
+    } catch (error) {
+      const message = reportApiError(error);
+      setApiError(message);
+      return { success: false, error: message };
     }
-
-    if (!cleanPassword) {
-      return { success: false, error: 'Please enter your password.' };
-    }
-
-    // Refresh users from DB
-    const currentDb = getStoredUsers();
-
-    const foundUser = currentDb.find(u =>
-      u.email.toLowerCase() === cleanEmail ||
-      (u.githubUsername && u.githubUsername.toLowerCase() === cleanEmail.replace('@', ''))
-    );
-
-    if (!foundUser) {
-      return {
-        success: false,
-        error: `No registered account found for "${email}". Please verify your email or click "Create New Account".`
-      };
-    }
-
-    // Strict Password Authentication against database
-    const expectedPassword = foundUser.password || 'devflow123';
-    if (cleanPassword !== expectedPassword) {
-      return {
-        success: false,
-        error: 'Invalid password. (Testing tip: default passwords are "devflow123" for Meghana, "admin123" for Admin).'
-      };
-    }
-
-    // Authenticated successfully!
-    setCurrentUser(foundUser);
-    setIsAuthenticated(true);
-    setCurrentView('hub');
-    localStorage.setItem('devflow_session_user', JSON.stringify(foundUser));
-    return { success: true };
   };
 
   const loginWithGithub = () => {
-    const currentDb = getStoredUsers();
-    const defaultGhUser = currentDb.find(u => u.email === 'meghana@devflow.io') || currentDb[0];
-    setCurrentUser(defaultGhUser);
-    setIsAuthenticated(true);
-    setCurrentView('hub');
-    localStorage.setItem('devflow_session_user', JSON.stringify(defaultGhUser));
+    window.location.assign('/api/auth/github');
   };
 
-  const signup = (userData: Omit<User, 'id'> & { password?: string }): { success: boolean; error?: string } => {
-    const cleanEmail = userData.email.trim().toLowerCase();
-    const cleanPassword = (userData.password || '').trim();
-    const cleanName = userData.name.trim();
-
-    if (!cleanName) {
-      return { success: false, error: 'Full Name is required.' };
+  const signup = async (userData: Omit<User, 'id'> & { password?: string }) => {
+    try {
+      const { user } = await apiRequest<{ user: User }>('/auth/register', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: userData.name,
+          email: userData.email,
+          password: userData.password,
+          role: userData.role,
+          githubUsername: userData.githubUsername,
+          avatar: userData.avatar,
+        }),
+      });
+      setCurrentUser(user);
+      setIsAuthenticated(true);
+      setCurrentView('hub');
+      setApiError(null);
+      await loadWorkspace();
+      return { success: true };
+    } catch (error) {
+      const message = reportApiError(error);
+      setApiError(message);
+      return { success: false, error: message };
     }
-
-    if (!cleanEmail) {
-      return { success: false, error: 'Email address is required.' };
-    }
-
-    if (!cleanPassword || cleanPassword.length < 6) {
-      return { success: false, error: 'Password must be at least 6 characters long.' };
-    }
-
-    const currentDb = getStoredUsers();
-
-    if (currentDb.some(u => u.email.toLowerCase() === cleanEmail)) {
-      return { success: false, error: 'An account with this email is already registered. Please sign in instead.' };
-    }
-
-    const newUser: User = {
-      id: `u-${Date.now()}`,
-      name: cleanName,
-      email: cleanEmail,
-      password: cleanPassword,
-      role: userData.role || 'Software Engineer',
-      avatar: userData.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-      githubUsername: userData.githubUsername || cleanEmail.split('@')[0]
-    };
-
-    const updatedDb = [...currentDb, newUser];
-    setUsers(updatedDb);
-    localStorage.setItem('devflow_users_db', JSON.stringify(updatedDb));
-
-    setCurrentUser(newUser);
-    setIsAuthenticated(true);
-    setCurrentView('hub');
-    localStorage.setItem('devflow_session_user', JSON.stringify(newUser));
-
-    return { success: true };
   };
 
   const logout = () => {
-    localStorage.removeItem('devflow_session_user');
+    void apiRequest('/auth/logout', { method: 'POST' }).catch(error => setApiError(reportApiError(error)));
     setIsAuthenticated(false);
     setCurrentUser(null);
+    setProjects([]);
+    setTasks([]);
+    setIssues([]);
+    setUsers([]);
     setCurrentView('hub');
-  };
-
-  const switchUser = (user: User) => {
-    setCurrentUser(user);
-    setIsAuthenticated(true);
-    localStorage.setItem('devflow_session_user', JSON.stringify(user));
+    setActiveProject(emptyProject);
+    setGithubAccount({ connected: false, username: null });
+    setUserPublicRepos([]);
+    setApiError(null);
   };
 
   // Project Navigation & Actions
@@ -364,221 +393,216 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setCurrentView('hub');
   };
 
-  const addProject = (projectData: Omit<Project, 'id' | 'createdAt'>) => {
-    const id = `p-${Date.now()}`;
-    const newProj: Project = {
-      ...projectData,
-      id,
-      createdAt: new Date().toISOString()
-    };
-    setProjects(prev => [newProj, ...prev]);
-    setActiveProject(newProj);
-    setCurrentView('workspace');
-    setActiveTab('dashboard');
-
-    setActivities(prev => [{
-      id: 'act-' + Date.now(),
-      type: 'project_created',
-      title: `created project "${newProj.name}"`,
-      timestamp: 'Just now',
-      user: currentUser ? currentUser.name : 'Meghana',
-      avatar: currentUser ? currentUser.avatar : mockUsers[1].avatar
-    }, ...prev]);
-  };
-
-  // Team Member Actions
-  const addUser = (userData: Omit<User, 'id'>) => {
-    const newUser: User = {
-      ...userData,
-      id: `u-${Date.now()}`
-    };
-    setUsers(prev => [...prev, newUser]);
-
-    if (activeProject) {
-      addMemberToProject(activeProject.id, newUser.id);
-    }
-  };
-
-  const updateUser = (userId: string, updates: Partial<User>) => {
-    setUsers(prev => prev.map(u => u.id === userId ? { ...u, ...updates } : u));
-    
-    setProjects(prevProjects => prevProjects.map(proj => ({
-      ...proj,
-      teamMembers: proj.teamMembers.map(m => m.id === userId ? { ...m, ...updates } : m)
-    })));
-
-    setActiveProject(prev => ({
-      ...prev,
-      teamMembers: prev.teamMembers.map(m => m.id === userId ? { ...m, ...updates } : m)
-    }));
-
-    if (currentUser && currentUser.id === userId) {
-      setCurrentUser(prev => prev ? { ...prev, ...updates } : null);
-    }
-  };
-
-  const deleteUser = (userId: string) => {
-    setUsers(prev => prev.filter(u => u.id !== userId));
-    
-    setProjects(prevProjects => prevProjects.map(proj => ({
-      ...proj,
-      teamMembers: proj.teamMembers.filter(m => m.id !== userId)
-    })));
-
-    setActiveProject(prev => ({
-      ...prev,
-      teamMembers: prev.teamMembers.filter(m => m.id !== userId)
-    }));
-  };
-
-  const addMemberToProject = (projectId: string, userId: string) => {
-    const targetUser = users.find(u => u.id === userId);
-    if (!targetUser) return;
-
-    setProjects(prev => prev.map(proj => {
-      if (proj.id === projectId) {
-        if (proj.teamMembers.some(m => m.id === userId)) return proj;
-        return { ...proj, teamMembers: [...proj.teamMembers, targetUser] };
-      }
-      return proj;
-    }));
-
-    if (activeProject.id === projectId) {
-      setActiveProject(prev => {
-        if (prev.teamMembers.some(m => m.id === userId)) return prev;
-        return { ...prev, teamMembers: [...prev.teamMembers, targetUser] };
+  const addProject = async (projectData: Omit<Project, 'id' | 'createdAt'>) => {
+    try {
+      const { project: newProj } = await apiRequest<{ project: Project }>('/projects', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: projectData.name,
+          key: projectData.key,
+          description: projectData.description,
+          color: projectData.color,
+          gitRepo: projectData.gitRepo,
+          memberIds: projectData.teamMembers.map(member => member.id),
+        }),
       });
+      setApiError(null);
+      setUsers(previous => [...new Map([...previous, ...newProj.teamMembers].map(member => [member.id, member])).values()]);
+      setActiveProject(newProj);
+      setCurrentView('workspace');
+      setActiveTab('dashboard');
+      await loadWorkspace();
+      return true;
+    } catch (error) {
+      setApiError(reportApiError(error));
+      return false;
     }
   };
 
-  const removeMemberFromProject = (projectId: string, userId: string) => {
-    setProjects(prev => prev.map(proj => {
-      if (proj.id === projectId) {
-        return { ...proj, teamMembers: proj.teamMembers.filter(m => m.id !== userId) };
-      }
-      return proj;
-    }));
+  const addMemberToProject = async (projectId: string, email: string) => {
+    try {
+      await apiRequest(`/projects/${projectId}/members`, {
+        method: 'POST',
+        body: JSON.stringify({ email }),
+      });
+      setApiError(null);
+      await loadWorkspace();
+      return true;
+    } catch (error) {
+      setApiError(reportApiError(error));
+      return false;
+    }
+  };
 
-    if (activeProject.id === projectId) {
-      setActiveProject(prev => ({
-        ...prev,
-        teamMembers: prev.teamMembers.filter(m => m.id !== userId)
-      }));
+  const removeMemberFromProject = async (projectId: string, userId: string) => {
+    try {
+      await apiRequest(`/projects/${projectId}/members/${userId}`, { method: 'DELETE' });
+      setApiError(null);
+      await loadWorkspace();
+      return true;
+    } catch (error) {
+      setApiError(reportApiError(error));
+      return false;
     }
   };
 
   // Module 1 Handlers
   const moveTaskStage = (taskId: string, newStage: TaskStage) => {
-    setTasks(prev => prev.map(task => {
-      if (task.id === taskId) {
-        const updated = { ...task, stage: newStage, updatedAt: new Date().toISOString() };
-        const newAct: ActivityItem = {
-          id: 'act-' + Date.now(),
-          type: 'task_moved',
-          title: `moved task "${task.title}" to ${newStage.replace('_', ' ').toUpperCase()}`,
-          timestamp: 'Just now',
-          user: currentUser ? currentUser.name : 'Meghana',
-          avatar: currentUser ? currentUser.avatar : mockUsers[1].avatar
-        };
-        setActivities(acts => [newAct, ...acts]);
-        return updated;
-      }
-      return task;
-    }));
+    const task = tasks.find(item => item.id === taskId);
+    if (task) void updateTask(taskId, { stage: newStage });
   };
 
-  const addTask = (newTaskData: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const id = `TSK-${Math.floor(100 + Math.random() * 900)}`;
-    const newTask: Task = {
-      ...newTaskData,
-      id,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-    setTasks(prev => [newTask, ...prev]);
-    
-    setActivities(prev => [{
-      id: 'act-' + Date.now(),
-      type: 'task_created',
-      title: `created task "${newTask.title}"`,
-      timestamp: 'Just now',
-      user: currentUser ? currentUser.name : 'Meghana',
-      avatar: currentUser ? currentUser.avatar : mockUsers[1].avatar
-    }, ...prev]);
+  const addTask = async (newTaskData: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => {
+    try {
+      const { task } = await apiRequest<{ task: Task & { assigneeId: string | null; dueDate: string | null } }>(
+        `/projects/${newTaskData.projectId}/tasks`,
+        {
+          method: 'POST',
+          body: JSON.stringify({ ...newTaskData, assigneeId: newTaskData.assigneeId || null, dueDate: newTaskData.dueDate || null }),
+        },
+      );
+      setTasks(previous => [{
+        ...task,
+        assigneeId: task.assigneeId ?? '',
+        dueDate: task.dueDate ?? '',
+        tags: Array.isArray(task.tags) ? task.tags : [],
+        subtasks: Array.isArray(task.subtasks) ? task.subtasks : [],
+      }, ...previous]);
+      setApiError(null);
+      await loadWorkspace();
+      return true;
+    } catch (error) {
+      setApiError(reportApiError(error));
+      return false;
+    }
   };
 
-  const updateTask = (taskId: string, updates: Partial<Task>) => {
-    setTasks(prev => prev.map(task => task.id === taskId ? { ...task, ...updates, updatedAt: new Date().toISOString() } : task));
+  const updateTask = async (taskId: string, updates: Partial<Task>) => {
+    const currentTask = tasks.find(task => task.id === taskId);
+    if (!currentTask) return false;
+    try {
+      const { task } = await apiRequest<{ task: Task & { assigneeId: string | null; dueDate: string | null } }>(
+        `/projects/${currentTask.projectId}/tasks/${taskId}`,
+        {
+          method: 'PATCH',
+          body: JSON.stringify({
+            ...updates,
+            ...(updates.assigneeId !== undefined ? { assigneeId: updates.assigneeId || null } : {}),
+            ...(updates.dueDate !== undefined ? { dueDate: updates.dueDate || null } : {}),
+          }),
+        },
+      );
+      setTasks(previous => previous.map(item => item.id === taskId ? {
+        ...task,
+        assigneeId: task.assigneeId ?? '',
+        dueDate: task.dueDate ?? '',
+        tags: Array.isArray(task.tags) ? task.tags : [],
+        subtasks: Array.isArray(task.subtasks) ? task.subtasks : [],
+      } : item));
+      setApiError(null);
+      return true;
+    } catch (error) {
+      setApiError(reportApiError(error));
+      return false;
+    }
   };
 
-  const deleteTask = (taskId: string) => {
-    setTasks(prev => prev.filter(task => task.id !== taskId));
+  const deleteTask = async (taskId: string) => {
+    const task = tasks.find(item => item.id === taskId);
+    if (!task) return;
+    try {
+      await apiRequest(`/projects/${task.projectId}/tasks/${taskId}`, { method: 'DELETE' });
+      setTasks(previous => previous.filter(item => item.id !== taskId));
+      setApiError(null);
+    } catch (error) {
+      setApiError(reportApiError(error));
+    }
   };
 
   const toggleSubTask = (taskId: string, subtaskId: string) => {
-    setTasks(prev => prev.map(task => {
-      if (task.id === taskId) {
-        const updatedSubtasks = task.subtasks.map(st => 
-          st.id === subtaskId ? { ...st, completed: !st.completed } : st
-        );
-        return { ...task, subtasks: updatedSubtasks, updatedAt: new Date().toISOString() };
-      }
-      return task;
-    }));
+    const task = tasks.find(item => item.id === taskId);
+    if (!task) return;
+    void updateTask(taskId, {
+      subtasks: task.subtasks.map(subtask => subtask.id === subtaskId
+        ? { ...subtask, completed: !subtask.completed }
+        : subtask),
+    });
   };
 
   // Module 2 Handlers
-  const addIssue = (newIssueData: Omit<Issue, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const id = `BUG-${Math.floor(200 + Math.random() * 800)}`;
-    const newIssue: Issue = {
-      ...newIssueData,
-      id,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-    setIssues(prev => [newIssue, ...prev]);
-
-    setActivities(prev => [{
-      id: 'act-' + Date.now(),
-      type: 'issue_reported',
-      title: `reported bug "${newIssue.title}"`,
-      timestamp: 'Just now',
-      user: currentUser ? currentUser.name : 'Meghana',
-      avatar: currentUser ? currentUser.avatar : mockUsers[1].avatar,
-      details: `Severity: ${newIssue.severity.toUpperCase()}`
-    }, ...prev]);
+  const addIssue = async (newIssueData: Omit<Issue, 'id' | 'createdAt' | 'updatedAt'>) => {
+    try {
+      const { issue } = await apiRequest<{ issue: Issue & { assigneeId: string | null } }>(
+        `/projects/${newIssueData.projectId}/issues`,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            ...newIssueData,
+            assigneeId: newIssueData.assigneeId || null,
+            linkedTaskId: newIssueData.linkedTaskId || null,
+          }),
+        },
+      );
+      setIssues(previous => [{
+        ...issue,
+        assigneeId: issue.assigneeId ?? '',
+        reproductionSteps: Array.isArray(issue.reproductionSteps) ? issue.reproductionSteps : [],
+      }, ...previous]);
+      setApiError(null);
+      await loadWorkspace();
+      return true;
+    } catch (error) {
+      setApiError(reportApiError(error));
+      return false;
+    }
   };
 
   const updateIssueStatus = (issueId: string, newStatus: IssueStatus) => {
-    setIssues(prev => prev.map(issue => {
-      if (issue.id === issueId) {
-        const updated = { ...issue, status: newStatus, updatedAt: new Date().toISOString() };
-        if (newStatus === 'resolved' || newStatus === 'closed') {
-          setActivities(acts => [{
-            id: 'act-' + Date.now(),
-            type: 'issue_resolved',
-            title: `marked bug "${issue.title}" as ${newStatus.toUpperCase()}`,
-            timestamp: 'Just now',
-            user: currentUser ? currentUser.name : 'Meghana',
-            avatar: currentUser ? currentUser.avatar : mockUsers[1].avatar
-          }, ...acts]);
-        }
-        return updated;
-      }
-      return issue;
-    }));
+    void updateIssue(issueId, { status: newStatus });
   };
 
-  const updateIssue = (issueId: string, updates: Partial<Issue>) => {
-    setIssues(prev => prev.map(issue => issue.id === issueId ? { ...issue, ...updates, updatedAt: new Date().toISOString() } : issue));
+  const updateIssue = async (issueId: string, updates: Partial<Issue>) => {
+    const currentIssue = issues.find(issue => issue.id === issueId);
+    if (!currentIssue) return false;
+    try {
+      const { issue } = await apiRequest<{ issue: Issue & { assigneeId: string | null } }>(
+        `/projects/${currentIssue.projectId}/issues/${issueId}`,
+        {
+          method: 'PATCH',
+          body: JSON.stringify({
+            ...updates,
+            ...(updates.assigneeId !== undefined ? { assigneeId: updates.assigneeId || null } : {}),
+            ...(updates.linkedTaskId !== undefined ? { linkedTaskId: updates.linkedTaskId || null } : {}),
+          }),
+        },
+      );
+      setIssues(previous => previous.map(item => item.id === issueId ? {
+        ...issue,
+        assigneeId: issue.assigneeId ?? '',
+        reproductionSteps: Array.isArray(issue.reproductionSteps) ? issue.reproductionSteps : [],
+      } : item));
+      setApiError(null);
+      return true;
+    } catch (error) {
+      setApiError(reportApiError(error));
+      return false;
+    }
   };
 
-  const deleteIssue = (issueId: string) => {
-    setIssues(prev => prev.filter(issue => issue.id !== issueId));
+  const deleteIssue = async (issueId: string) => {
+    const issue = issues.find(item => item.id === issueId);
+    if (!issue) return;
+    try {
+      await apiRequest(`/projects/${issue.projectId}/issues/${issueId}`, { method: 'DELETE' });
+      setIssues(previous => previous.filter(item => item.id !== issueId));
+      setApiError(null);
+    } catch (error) {
+      setApiError(reportApiError(error));
+    }
   };
 
   // Module 3: GitHub Integration Handlers
-  const createPullRequest = (prData: {
+  const createPullRequest = async (prData: {
     title: string;
     description: string;
     sourceBranch: string;
@@ -587,227 +611,65 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     linkedIssueId?: string;
     isDraft?: boolean;
   }) => {
-    const nextNumber = Math.max(0, ...pullRequests.map(p => p.number)) + 1;
-    const newPR: PullRequest = {
-      id: `pr-${nextNumber}`,
-      projectId: activeProject.id,
-      number: nextNumber,
-      title: prData.title,
-      description: prData.description,
-      authorId: currentUser?.id || 'u2',
-      authorName: currentUser?.name || 'Meghana',
-      authorAvatar: currentUser?.avatar || mockUsers[1].avatar,
-      githubUsername: currentUser?.githubUsername || 'meghana_codes',
-      sourceBranch: prData.sourceBranch,
-      targetBranch: prData.targetBranch,
-      status: prData.isDraft ? 'draft' : 'open',
-      reviewStatus: 'review_required',
-      ciStatus: 'pending',
-      additions: Math.floor(Math.random() * 80) + 15,
-      deletions: Math.floor(Math.random() * 20) + 3,
-      changedFilesCount: Math.floor(Math.random() * 3) + 1,
-      linkedTaskId: prData.linkedTaskId,
-      linkedIssueId: prData.linkedIssueId,
-      mergeable: true,
-      diffFiles: [
-        {
-          filename: `src/features/${prData.sourceBranch.replace('/', '-')}.ts`,
-          status: 'added',
-          additions: 45,
-          deletions: 0,
-          patch: `@@ -0,0 +1,15 @@\n+// Feature implementation for ${prData.title}\n+export function initializeFeature() {\n+  console.log('Feature initialized from branch ${prData.sourceBranch}');\n+}`
-        }
-      ],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-
-    setPullRequests(prev => [newPR, ...prev]);
-
-    // Ensure branch is registered in branches
-    setBranches(prev => {
-      if (prev.some(b => b.name === prData.sourceBranch)) return prev;
-      return [...prev, {
-        name: prData.sourceBranch,
-        projectId: activeProject.id,
-        isDefault: false,
-        lastCommitSha: Math.random().toString(16).substring(2, 9),
-        lastCommitMessage: `feat: ${prData.title}`,
-        updatedAt: 'Just now',
-        ahead: 1,
-        behind: 0
-      }];
-    });
-
-    // If task was linked, update task with PR link
-    if (prData.linkedTaskId) {
-      setTasks(prev => prev.map(t => t.id === prData.linkedTaskId ? {
-        ...t,
-        githubPR: `#${nextNumber} - ${prData.title}`
-      } : t));
+    try {
+      const { pullRequest } = await apiRequest<{ pullRequest: {
+        id: string; projectId: string; number: number; title: string; description: string;
+        authorName: string; githubUsername: string; sourceBranch: string; targetBranch: string;
+        status: string; createdAt: string; updatedAt: string; htmlUrl?: string;
+      } }>(`/projects/${activeProject.id}/pull-requests`, {
+        method: 'POST',
+        body: JSON.stringify(prData),
+      });
+      setPullRequests(previous => [{
+        ...pullRequest,
+        status: pullRequest.status === 'merged' || pullRequest.status === 'closed' || pullRequest.status === 'draft' ? pullRequest.status : 'open',
+        authorId: currentUser?.id ?? '',
+        authorAvatar: currentUser?.avatar ?? '',
+        reviewStatus: 'review_required',
+        ciStatus: 'pending',
+        additions: 0,
+        deletions: 0,
+        changedFilesCount: 0,
+        linkedTaskId: prData.linkedTaskId,
+        linkedIssueId: prData.linkedIssueId,
+        mergeable: true,
+        diffFiles: [],
+      }, ...previous]);
+      if (prData.linkedTaskId) {
+        await updateTask(prData.linkedTaskId, { githubPR: `#${pullRequest.number} - ${pullRequest.title}` });
+      }
+      await loadWorkspace();
+      setApiError(null);
+      return true;
+    } catch (error) {
+      setApiError(reportApiError(error));
+      return false;
     }
-
-    // Add activity
-    setActivities(acts => [{
-      id: 'act-' + Date.now(),
-      type: 'pr_opened',
-      title: `opened Pull Request #${nextNumber}: "${prData.title}"`,
-      timestamp: 'Just now',
-      user: currentUser ? currentUser.name : 'Meghana',
-      avatar: currentUser ? currentUser.avatar : mockUsers[1].avatar,
-      details: `${prData.sourceBranch} → ${prData.targetBranch}`
-    }, ...acts]);
-
-    // Record webhook event
-    const newWebhook: WebhookEvent = {
-      id: `wh-${Date.now()}`,
-      projectId: activeProject.id,
-      event: 'pull_request',
-      action: 'opened',
-      sender: currentUser?.githubUsername || 'meghana_codes',
-      senderAvatar: currentUser?.avatar || mockUsers[1].avatar,
-      timestamp: 'Just now',
-      summary: `PR #${nextNumber} opened: "${prData.title}"`,
-      status: 'delivered',
-      payload: {
-        action: 'opened',
-        number: nextNumber,
-        pull_request: {
-          title: prData.title,
-          head: prData.sourceBranch,
-          base: prData.targetBranch,
-          user: { login: currentUser?.githubUsername || 'meghana_codes' }
-        }
-      }
-    };
-    setWebhookEvents(prev => [newWebhook, ...prev]);
   };
-
-  const mergePullRequest = (prId: string) => {
-    const pr = pullRequests.find(p => p.id === prId);
-    if (!pr || pr.status === 'merged') return;
-
-    setPullRequests(prev => prev.map(p => p.id === prId ? {
-      ...p,
-      status: 'merged',
-      reviewStatus: 'approved',
-      ciStatus: 'success',
-      updatedAt: new Date().toISOString()
-    } : p));
-
-    // Automatically transition linked task to 'done' in Module 1 Kanban!
-    if (pr.linkedTaskId) {
-      moveTaskStage(pr.linkedTaskId, 'done');
+  const mergePullRequest = async (prId: string) => {
+    const pullRequest = pullRequests.find(item => item.id === prId);
+    if (!pullRequest) return;
+    try {
+      await apiRequest(`/projects/${pullRequest.projectId}/pull-requests/${pullRequest.number}/merge`, { method: 'POST' });
+      if (pullRequest.linkedTaskId) await updateTask(pullRequest.linkedTaskId, { stage: 'done' });
+      await loadWorkspace();
+      setApiError(null);
+    } catch (error) {
+      setApiError(reportApiError(error));
     }
-
-    // Add merge commit to commit stream
-    const mergeSha = Math.random().toString(16).substring(2, 9);
-    const mergeCommit: Commit = {
-      id: mergeSha,
-      projectId: pr.projectId,
-      message: `Merge pull request #${pr.number} from ${pr.sourceBranch}`,
-      authorName: currentUser?.name || 'Meghana',
-      authorEmail: currentUser?.email || 'meghana@devflow.io',
-      authorAvatar: currentUser?.avatar || mockUsers[1].avatar,
-      githubUsername: currentUser?.githubUsername || 'meghana_codes',
-      branch: pr.targetBranch,
-      timestamp: 'Just now',
-      additions: pr.additions,
-      deletions: pr.deletions,
-      linkedTaskId: pr.linkedTaskId
-    };
-    setCommits(prev => [mergeCommit, ...prev]);
-
-    // Activity
-    setActivities(acts => [{
-      id: 'act-' + Date.now(),
-      type: 'pr_merged',
-      title: `merged Pull Request #${pr.number} into ${pr.targetBranch}`,
-      timestamp: 'Just now',
-      user: currentUser ? currentUser.name : 'Meghana',
-      avatar: currentUser ? currentUser.avatar : mockUsers[1].avatar
-    }, ...acts]);
-
-    // Webhook event
-    setWebhookEvents(prev => [{
-      id: `wh-${Date.now()}`,
-      projectId: pr.projectId,
-      event: 'pull_request',
-      action: 'closed',
-      sender: currentUser?.githubUsername || 'meghana_codes',
-      senderAvatar: currentUser?.avatar || mockUsers[1].avatar,
-      timestamp: 'Just now',
-      summary: `PR #${pr.number} merged into ${pr.targetBranch} (${mergeSha})`,
-      status: 'delivered',
-      payload: {
-        action: 'closed',
-        merged: true,
-        number: pr.number,
-        merge_commit_sha: mergeSha
-      }
-    }, ...prev]);
   };
 
-  const closePullRequest = (prId: string) => {
-    setPullRequests(prev => prev.map(p => p.id === prId ? { ...p, status: 'closed', updatedAt: new Date().toISOString() } : p));
+  const closePullRequest = async (prId: string) => {
+    const pullRequest = pullRequests.find(item => item.id === prId);
+    if (!pullRequest) return;
+    try {
+      await apiRequest(`/projects/${pullRequest.projectId}/pull-requests/${pullRequest.number}`, { method: 'PATCH' });
+      await loadWorkspace();
+      setApiError(null);
+    } catch (error) {
+      setApiError(reportApiError(error));
+    }
   };
-
-  const addCommit = (commitData: {
-    message: string;
-    branch?: string;
-    linkedTaskId?: string;
-    additions?: number;
-    deletions?: number;
-  }) => {
-    const sha = Math.random().toString(16).substring(2, 9);
-    const newCommit: Commit = {
-      id: sha,
-      projectId: activeProject.id,
-      message: commitData.message,
-      authorName: currentUser?.name || 'Meghana',
-      authorEmail: currentUser?.email || 'meghana@devflow.io',
-      authorAvatar: currentUser?.avatar || mockUsers[1].avatar,
-      githubUsername: currentUser?.githubUsername || 'meghana_codes',
-      branch: commitData.branch || 'main',
-      timestamp: 'Just now',
-      additions: commitData.additions ?? Math.floor(Math.random() * 40) + 5,
-      deletions: commitData.deletions ?? Math.floor(Math.random() * 10) + 1,
-      linkedTaskId: commitData.linkedTaskId
-    };
-
-    setCommits(prev => [newCommit, ...prev]);
-
-    setActivities(acts => [{
-      id: 'act-' + Date.now(),
-      type: 'github_push',
-      title: `pushed commit ${sha}: "${commitData.message}"`,
-      timestamp: 'Just now',
-      user: currentUser ? currentUser.name : 'Meghana',
-      avatar: currentUser ? currentUser.avatar : mockUsers[1].avatar,
-      details: `Branch: ${commitData.branch || 'main'}`
-    }, ...acts]);
-
-    setWebhookEvents(prev => [{
-      id: `wh-${Date.now()}`,
-      projectId: activeProject.id,
-      event: 'push',
-      action: 'created',
-      sender: currentUser?.githubUsername || 'meghana_codes',
-      senderAvatar: currentUser?.avatar || mockUsers[1].avatar,
-      timestamp: 'Just now',
-      summary: `Git push to ${commitData.branch || 'main'} (${sha}): "${commitData.message}"`,
-      status: 'delivered',
-      payload: {
-        ref: `refs/heads/${commitData.branch || 'main'}`,
-        head_commit: {
-          id: sha,
-          message: commitData.message,
-          author: { name: currentUser?.name || 'Meghana' }
-        }
-      }
-    }, ...prev]);
-  };
-
   const simulateWebhook = (eventType: 'push' | 'pull_request' | 'workflow_run') => {
     const time = 'Just now';
     if (eventType === 'push') {
@@ -964,404 +826,234 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  const syncRepoWithGitHub = async (customUrl?: string, forceRefresh = true): Promise<void> => {
-    const targetUrl = customUrl || activeProject.gitRepo || repoSettings.repoUrl;
+  const syncRepoWithGitHub = async (customUrl?: string): Promise<boolean> => {
+    if (!activeProject.id) return false;
+    const targetUrl = customUrl || activeProject.gitRepo || '';
     const parsed = parseGitHubRepo(targetUrl);
     if (!parsed) {
-      setRepoSettings(prev => ({
-        ...prev,
-        syncError: `Invalid repository URL "${targetUrl}". Expected https://github.com/owner/repo`,
-        lastSyncedAt: 'Error parsing URL'
-      }));
-      return;
+      const message = `Invalid repository URL "${targetUrl}". Expected https://github.com/owner/repo`;
+      setRepoSettings(previous => ({ ...previous, syncError: message }));
+      setApiError(message);
+      return false;
     }
 
-    const { owner, repo } = parsed;
     setIsSyncingGitHub(true);
-    setRepoSettings(prev => ({ ...prev, syncError: null }));
-
     try {
-      const [repoRes, commitsRes, branchesRes, pullsRes, rateLimitRes] = await Promise.allSettled([
-        fetchGitHubRepoDetails(owner, repo, undefined, forceRefresh),
-        fetchGitHubCommits(owner, repo, activeProject.id, undefined, undefined, forceRefresh),
-        fetchGitHubBranches(owner, repo, activeProject.id, undefined, undefined, forceRefresh),
-        fetchGitHubPullRequests(owner, repo, activeProject.id, undefined, forceRefresh),
-        checkRateLimit()
-      ]);
-
-      if (rateLimitRes.status === 'fulfilled' && rateLimitRes.value) {
-        setGithubRateLimit(rateLimitRes.value);
-      }
-
-      if (repoRes.status === 'fulfilled') {
-        const info = repoRes.value;
-        setRepoSettings(prev => ({
-          ...prev,
-          connected: true,
-          repoUrl: info.htmlUrl,
-          defaultBranch: info.defaultBranch,
-          owner: info.owner,
-          repoName: info.name,
-          description: info.description,
-          starsCount: info.stars,
-          forksCount: info.forks,
-          openIssuesCount: info.openIssues,
-          isLiveSync: true,
-          syncError: null,
-          lastSyncedAt: 'Just now'
-        }));
-      }
-
-      if (commitsRes.status === 'fulfilled' && commitsRes.value.length > 0) {
-        const remote = commitsRes.value;
-        setCommits(prev => {
-          const other = prev.filter(c => c.projectId !== activeProject.id);
-          return [...remote, ...other];
+      const path = `/projects/${activeProject.id}/github`;
+      const existing = await apiRequest<{ integration: { repoUrl: string; owner: string; repoName: string; defaultBranch: string; autoSync: boolean; lastSyncedAt: string | null } | null }>(path);
+      let integration = existing.integration;
+      let webhook = { url: '', secret: '' };
+      if (!integration || integration.repoUrl !== targetUrl) {
+        const configured = await apiRequest<{
+          integration: { repoUrl: string; owner: string; repoName: string; defaultBranch: string; autoSync: boolean; lastSyncedAt: string | null };
+          webhook: { url: string; secret: string };
+        }>(path, {
+          method: 'PUT',
+          body: JSON.stringify({ repoUrl: targetUrl, defaultBranch: repoSettings.defaultBranch || 'main', autoSync: true }),
         });
-
-        // Automatically update Kanban tasks if commit closes/fixes a task
-        remote.forEach(c => {
-          if (c.linkedTaskId && /closes|fixes|resolves/i.test(c.message)) {
-            setTasks(currentTasks => currentTasks.map(t =>
-              t.id === c.linkedTaskId && t.stage !== 'done' ? { ...t, stage: 'done', updatedAt: 'Just now' } : t
-            ));
-          }
-        });
+        integration = configured.integration;
+        webhook = configured.webhook;
       }
-
-      if (branchesRes.status === 'fulfilled' && branchesRes.value.length > 0) {
-        setBranches(prev => {
-          const other = prev.filter(b => b.projectId !== activeProject.id);
-          return [...branchesRes.value, ...other];
-        });
-      }
-
-      if (pullsRes.status === 'fulfilled' && pullsRes.value.length > 0) {
-        setPullRequests(prev => {
-          const other = prev.filter(pr => pr.projectId !== activeProject.id);
-          return [...pullsRes.value, ...other];
-        });
-      }
-
-      // Record live sync event
-      const fetchedCount = commitsRes.status === 'fulfilled' ? commitsRes.value.length : 0;
-      setWebhookEvents(prev => [{
-        id: `wh-${Date.now()}`,
-        projectId: activeProject.id,
-        event: 'push',
-        action: 'synchronized',
-        sender: owner,
-        senderAvatar: repoRes.status === 'fulfilled' ? repoRes.value.ownerAvatar : 'https://avatars.githubusercontent.com/u/201999808?v=4',
-        timestamp: 'Just now',
-        summary: `Synchronized telemetry with live GitHub repository ${owner}/${repo} (${fetchedCount} commits verified)`,
-        status: 'delivered',
-        payload: {
-          action: 'synchronized',
-          repository: `${owner}/${repo}`,
-          commits_count: fetchedCount
-        }
-      }, ...prev]);
-
-    } catch (err: any) {
-      setRepoSettings(prev => ({
-        ...prev,
-        syncError: err?.message || 'Error communicating with GitHub API',
-        lastSyncedAt: 'Error'
+      const { synced } = await apiRequest<{ synced: { commits: number; pullRequests: number; workflowRuns: number } }>(`${path}/sync`, { method: 'POST' });
+      await loadWorkspace();
+      setRepoSettings(previous => ({
+        ...previous,
+        connected: true,
+        repoUrl: integration.repoUrl,
+        defaultBranch: integration.defaultBranch,
+        owner: integration.owner,
+        repoName: integration.repoName,
+        webhookUrl: webhook.url || previous.webhookUrl,
+        webhookSecret: webhook.secret || previous.webhookSecret,
+        isLiveSync: true,
+        syncError: null,
+        lastSyncedAt: new Date().toISOString(),
+        description: `${synced.commits} commits, ${synced.pullRequests} pull requests, ${synced.workflowRuns} workflow runs synced`,
       }));
+      setApiError(null);
+      return true;
+    } catch (error) {
+      const message = reportApiError(error);
+      setRepoSettings(previous => ({ ...previous, syncError: message }));
+      setApiError(message);
+      return false;
     } finally {
       setIsSyncingGitHub(false);
     }
   };
 
-  const fetchUserRepos = async (username = 'meghana922007') => {
+  const fetchUserRepos = useCallback(async () => {
     try {
-      const repos = await fetchUserPublicRepos(username);
-      setUserPublicRepos(repos);
-    } catch {
-      // non-fatal fallback
+      const { repositories } = await apiRequest<{ repositories: {
+        name: string; full_name: string; description: string | null; stargazers_count: number;
+        html_url: string; default_branch: string;
+      }[] }>('/github/repos');
+      setUserPublicRepos(repositories.map(repository => ({
+        name: repository.name,
+        fullName: repository.full_name,
+        description: repository.description,
+        stars: repository.stargazers_count,
+        language: null,
+        htmlUrl: repository.html_url,
+        defaultBranch: repository.default_branch,
+      })));
+      setApiError(null);
+    } catch (error) {
+      setApiError(reportApiError(error));
+    }
+  }, []);
+
+  const refreshGitHubAccount = useCallback(async () => {
+    try {
+      const status = await apiRequest<{ connected: boolean; username: string | null }>('/github/status');
+      setGithubAccount(status);
+      if (status.connected) await fetchUserRepos();
+      else setUserPublicRepos([]);
+    } catch (error) {
+      setApiError(reportApiError(error));
+    }
+  }, [fetchUserRepos]);
+
+  const saveGitHubToken = async (token: string) => {
+    try {
+      const status = await apiRequest<{ connected: boolean; username: string }>('/github/token', {
+        method: 'PUT',
+        body: JSON.stringify({ token }),
+      });
+      setGithubAccount(status);
+      await fetchUserRepos();
+      setApiError(null);
+      return true;
+    } catch (error) {
+      setApiError(reportApiError(error));
+      return false;
     }
   };
 
-  const switchGitRepo = async (newRepoUrl: string) => {
-    setProjects(prev => prev.map(p => p.id === activeProject.id ? { ...p, gitRepo: newRepoUrl } : p));
-    setActiveProject(prev => ({ ...prev, gitRepo: newRepoUrl }));
-    await syncRepoWithGitHub(newRepoUrl, true);
+  const removeGitHubToken = async () => {
+    try {
+      await apiRequest('/github/token', { method: 'DELETE' });
+      setGithubAccount({ connected: false, username: null });
+      setUserPublicRepos([]);
+      setApiError(null);
+      return true;
+    } catch (error) {
+      setApiError(reportApiError(error));
+      return false;
+    }
   };
 
+  const switchGitRepo = async (newRepoUrl: string): Promise<boolean> => {
+    try {
+      await apiRequest<{ project: Project }>(`/projects/${activeProject.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ gitRepo: newRepoUrl }),
+      });
+      const updatedProject = { ...activeProject, gitRepo: newRepoUrl };
+      setProjects(previous => previous.map(project => project.id === updatedProject.id ? updatedProject : project));
+      setActiveProject(updatedProject);
+      return await syncRepoWithGitHub(newRepoUrl);
+    } catch (error) {
+      setApiError(reportApiError(error));
+      return false;
+    }
+  };
   const updateRepoSettings = (settings: Partial<RepoSettings>) => {
     setRepoSettings(prev => ({ ...prev, ...settings }));
   };
 
-  const dispatchWorkflow = (options: {
+  const dispatchWorkflow = async (options: {
     workflowName: string;
     branch: string;
     runTests?: boolean;
     verbose?: boolean;
-  }) => {
-    const nextRunNum = Math.max(100, ...workflowRuns.map(r => r.runNumber)) + 1;
-    const runId = `run-dispatch-${Date.now()}`;
-    const branchCommits = commits.filter(c => c.branch === options.branch);
-    const headSha = branchCommits[0]?.id || '5fe7edf';
-    const commitMsg = branchCommits[0]?.message || `Manual workflow dispatch on ${options.branch}`;
-
-    const newRun: WorkflowRun = {
-      id: runId,
-      runNumber: nextRunNum,
-      projectId: activeProject.id,
-      name: options.workflowName,
-      workflowFileName: options.workflowName.toLowerCase().includes('docker') ? 'docker.yml' : 'ci.yml',
-      status: 'in_progress',
-      event: 'workflow_dispatch',
-      branch: options.branch,
-      commitSha: headSha,
-      commitMessage: commitMsg,
-      authorName: currentUser?.name || 'Meghana Pinikeshi',
-      authorAvatar: currentUser?.avatar || mockUsers[1].avatar,
-      githubUsername: currentUser?.githubUsername || 'meghana922007',
-      duration: 'Running (0s)',
-      durationSeconds: 0,
-      startedAt: 'Just now',
-      jobs: [
-        {
-          id: `job-${nextRunNum}-1`,
-          name: 'Build, Lint & Test Pipeline',
-          runner: 'ubuntu-latest',
-          status: 'in_progress',
-          duration: 'Running...',
-          steps: [
-            {
-              name: 'Set up runner & Node.js 22',
-              status: 'completed',
-              durationSeconds: 4,
-              logs: [
-                '[INFO] Initializing GitHub Actions runner (ubuntu-24.04)',
-                `[INFO] Triggered via workflow_dispatch by @${currentUser?.githubUsername || 'meghana922007'}`,
-                '[SUCCESS] Runner ready.'
-              ]
-            },
-            {
-              name: 'Checkout repository',
-              status: 'completed',
-              durationSeconds: 3,
-              logs: [
-                `[INFO] Checking out ${options.branch} (${headSha})`,
-                '[SUCCESS] Repository checked out.'
-              ]
-            },
-            {
-              name: 'Install dependencies (npm ci)',
-              status: 'completed',
-              durationSeconds: 5,
-              logs: [
-                '$ npm ci',
-                'added 28 packages in 0.9s',
-                '[SUCCESS] Dependencies installed.'
-              ]
-            },
-            {
-              name: 'Execute lint & typecheck',
-              status: 'in_progress',
-              durationSeconds: 3,
-              logs: [
-                '$ npx oxlint',
-                'oxlint: 0 errors, 0 warnings',
-                '$ tsc -b',
-                'TypeScript compilation passed.'
-              ]
-            },
-            {
-              name: 'Run unit & component test matrix',
-              status: 'queued',
-              durationSeconds: 0,
-              logs: [
-                '$ vitest run --coverage',
-                'Running 48 test suites across project modules...'
-              ]
-            }
-          ]
-        }
-      ],
-      testOutcome: {
-        total: 48,
-        passed: 48,
-        failed: 0,
-        skipped: 0,
-        duration: '14.8s',
-        coveragePercent: 94.2
-      },
-      artifacts: [
-        { name: 'devflow-dist-bundle.zip', size: '484 KB' }
-      ],
-      htmlUrl: `https://github.com/meghana922007/devflow_fsd/actions/runs/${nextRunNum}`,
-      isLive: true
-    };
-
-    setWorkflowRuns(prev => [newRun, ...prev]);
-
-    setActivities(acts => [{
-      id: 'act-' + Date.now(),
-      type: 'github_push',
-      title: `triggered workflow "${options.workflowName}" on ${options.branch}`,
-      timestamp: 'Just now',
-      user: currentUser?.name || 'Meghana Pinikeshi',
-      avatar: currentUser?.avatar || mockUsers[1].avatar
-    }, ...acts]);
-
-    setWebhookEvents(prev => [{
-      id: `wh-${Date.now()}`,
-      projectId: activeProject.id,
-      event: 'workflow_run',
-      action: 'requested',
-      sender: currentUser?.githubUsername || 'meghana_codes',
-      senderAvatar: currentUser?.avatar || mockUsers[1].avatar,
-      timestamp: 'Just now',
-      summary: `Workflow "${options.workflowName}" #${nextRunNum} queued on ${options.branch}`,
-      status: 'delivered',
-      payload: {
-        action: 'requested',
-        workflow_run: {
-          id: newRun.id,
-          name: options.workflowName,
-          head_branch: options.branch,
-          event: 'workflow_dispatch'
-        }
-      }
-    }, ...prev]);
+  }): Promise<boolean> => {
+    const workflowFileName = options.workflowName === 'Automated Playwright E2E Regression'
+      ? 'e2e.yml'
+      : options.workflowName === 'Docker Container Package & Vulnerability Scan'
+        ? 'docker.yml'
+        : options.workflowName === 'Security CodeQL Deep Scan'
+          ? 'codeql.yml'
+          : 'ci.yml';
+    try {
+      await apiRequest(`/projects/${activeProject.id}/workflows/dispatch`, {
+        method: 'POST',
+        body: JSON.stringify({ workflowFileName, branch: options.branch }),
+      });
+      setApiError(null);
+      await fetchWorkflowRuns();
+      return true;
+    } catch (error) {
+      setApiError(reportApiError(error));
+      return false;
+    }
+  };
+  const cancelWorkflowRun = async (runId: string) => {
+    const run = workflowRuns.find(item => item.id === runId);
+    if (!run) return;
+    try {
+      await apiRequest(`/projects/${run.projectId}/workflows/${run.runNumber}/cancel`, { method: 'POST' });
+      await fetchWorkflowRuns();
+      setApiError(null);
+    } catch (error) {
+      setApiError(reportApiError(error));
+    }
   };
 
-  const cancelWorkflowRun = (runId: string) => {
-    setWorkflowRuns(prev => prev.map(r => r.id === runId ? {
-      ...r,
-      status: 'cancelled',
-      duration: `${r.durationSeconds}s (Cancelled)`,
-      completedAt: 'Just now'
-    } : r));
+  const rerunWorkflowRun = async (runId: string) => {
+    const run = workflowRuns.find(item => item.id === runId);
+    if (!run) return;
+    try {
+      await apiRequest(`/projects/${run.projectId}/workflows/${run.runNumber}/rerun`, { method: 'POST' });
+      await fetchWorkflowRuns();
+      setApiError(null);
+    } catch (error) {
+      setApiError(reportApiError(error));
+    }
   };
-
-  const rerunWorkflowRun = (runId: string) => {
-    setWorkflowRuns(prev => prev.map(r => {
-      if (r.id !== runId) return r;
-      return {
-        ...r,
-        status: 'in_progress',
-        duration: 'Running (0s)',
-        durationSeconds: 0,
-        startedAt: 'Just now',
-        completedAt: undefined,
-        jobs: r.jobs.map(j => ({
-          ...j,
-          status: 'in_progress',
-          duration: 'Running...',
-          steps: j.steps.map((s, idx) => ({
-            ...s,
-            status: idx === 0 ? 'completed' : idx === 1 ? 'in_progress' : 'queued'
-          }))
-        }))
-      };
-    }));
-  };
-
   const fetchWorkflowRuns = async () => {
-    const repoParsed = parseGitHubRepo(activeProject.gitRepo || repoSettings.repoUrl);
-    if (!repoParsed) return;
+    if (!activeProject.id) return;
     setIsFetchingWorkflows(true);
     try {
-      const runs = await fetchGitHubWorkflowRuns(repoParsed.owner, repoParsed.repo, activeProject.id, undefined, true);
-      if (runs && runs.length > 0) {
-        setWorkflowRuns(runs);
-      }
-    } catch (e) {
-      console.warn('Could not fetch GitHub Actions runs', e);
+      await apiRequest(`/projects/${activeProject.id}/github/sync`, { method: 'POST' });
+      await loadWorkspace();
+      setApiError(null);
+    } catch (error) {
+      setApiError(reportApiError(error));
     } finally {
       setIsFetchingWorkflows(false);
     }
   };
-
-  // Live simulation ticker for in-progress workflow runs
-  useEffect(() => {
-    const hasRunning = workflowRuns.some(r => r.status === 'in_progress');
-    if (!hasRunning) return;
-
-    const interval = setInterval(() => {
-      setWorkflowRuns(prev => prev.map(run => {
-        if (run.status !== 'in_progress') return run;
-        const nextSec = run.durationSeconds + 1;
-
-        if (nextSec >= 16 && run.id.startsWith('run-dispatch-')) {
-          const completedJobs = run.jobs.map(j => ({
-            ...j,
-            status: 'completed' as const,
-            duration: `${nextSec}s`,
-            steps: j.steps.map(s => ({
-              ...s,
-              status: 'completed' as const,
-              logs: [...s.logs, `✓ Completed successfully in ${s.durationSeconds || 3}s.`]
-            }))
-          }));
-
-          setPullRequests(prs => prs.map(p => p.sourceBranch === run.branch && p.ciStatus === 'pending' ? { ...p, ciStatus: 'success' } : p));
-
-          return {
-            ...run,
-            status: 'success',
-            duration: `${nextSec}s`,
-            durationSeconds: nextSec,
-            completedAt: 'Just now',
-            jobs: completedJobs,
-            testOutcome: {
-              total: 48,
-              passed: 48,
-              failed: 0,
-              skipped: 0,
-              duration: '14.8s',
-              coveragePercent: 94.2
-            }
-          };
-        }
-
-        const mins = Math.floor(nextSec / 60);
-        const secs = nextSec % 60;
-        const durStr = mins > 0 ? `Running (${mins}m ${secs}s)` : `Running (${secs}s)`;
-        return {
-          ...run,
-          durationSeconds: nextSec,
-          duration: durStr
-        };
-      }));
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [workflowRuns]);
-
   // Auto-sync live repo on initial mount, project switch, window focus, & interval
   useEffect(() => {
-    syncRepoWithGitHub(undefined, false);
-    fetchUserRepos('meghana922007');
+    if (!isAuthenticated || !activeProject.id || !activeProject.gitRepo) return;
+    void syncRepoWithGitHub();
 
     const handleWindowFocus = () => {
-      syncRepoWithGitHub(undefined, true);
+      void syncRepoWithGitHub();
     };
     window.addEventListener('focus', handleWindowFocus);
 
     const interval = setInterval(() => {
-      syncRepoWithGitHub(undefined, true);
+      void syncRepoWithGitHub();
     }, 60000);
 
     return () => {
       window.removeEventListener('focus', handleWindowFocus);
       clearInterval(interval);
     };
-  }, [activeProject.id]);
+  }, [isAuthenticated, activeProject.id, activeProject.gitRepo]);
 
   return (
     <AppContext.Provider value={{
       isAuthenticated,
       currentUser,
+      apiError,
+      clearApiError: () => setApiError(null),
       login,
       loginWithGithub,
       signup,
       logout,
-      switchUser,
       currentView,
       setCurrentView,
       activeProject,
@@ -1372,9 +1064,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       activeTab,
       setActiveTab,
       users,
-      addUser,
-      updateUser,
-      deleteUser,
       addMemberToProject,
       removeMemberFromProject,
       tasks,
@@ -1396,13 +1085,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       createPullRequest,
       mergePullRequest,
       closePullRequest,
-      addCommit,
       simulateWebhook,
       syncRepoWithGitHub,
       updateRepoSettings,
       isSyncingGitHub,
       githubRateLimit,
       userPublicRepos,
+      githubAccount,
+      refreshGitHubAccount,
+      saveGitHubToken,
+      removeGitHubToken,
       fetchUserRepos,
       switchGitRepo,
       selectedPRForDiff,
@@ -1445,10 +1137,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setEditingIssue,
       isNewProjectModalOpen,
       setIsNewProjectModalOpen,
-      isUserModalOpen,
-      setIsUserModalOpen,
-      editingUser,
-      setEditingUser
     }}>
       {children}
     </AppContext.Provider>
