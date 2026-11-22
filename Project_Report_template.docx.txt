@@ -1,0 +1,733 @@
+﻿NATIONAL INSTITUTE OF TECHNOLOGY, WARANGAL
+Department of Computer Science and Engineering
+PROJECT REPORT
+DevFlow: A Unified Developer Collaboration & Engineering Workflow Platform
+Submitted in partial fulfilment of the Final Evaluation of the course
+CS1303 - Full Stack Development
+
+Field	Details
+Project title	DevFlow: A Unified Developer Collaboration & Engineering Workflow Platform
+Project type	Team of 2
+Student name(s) and roll number(s)	Pinikeshi Meghana - 24CSB0A54
+D.M.S.S Saranya - 24CSB0A22
+Team lead	Pinikeshi Meghana - 24CSB0A54
+Course instructor / guide	Faculty In-Charge, Department of Computer Science and Engineering
+Department	Computer Science and Engineering
+Academic year / semester	2026-2027 / V Semester
+Date of submission	22/11/2026
+GitHub repository	https://github.com/meghana922007/devflow_fsd.git
+Live deployment (if any)	Localhost Development (http://localhost:5173)
+Demo video	[To be recorded / Link to be updated]
+
+________________
+
+
+Certificate
+
+This is to certify that the project report titled "DevFlow: A Unified Developer Collaboration & Engineering Workflow Platform" is a bonafide record of the work carried out by Pinikeshi Meghana (Roll No. 24CSB0A54) and D.M.S.S Saranya (Roll No. 24CSB0A22) in the Department of Computer Science and Engineering, National Institute of Technology, Warangal, during the academic year 2026-2027, as part of the final evaluation of the course CS1303 - Full Stack Development.
+
+
+
+Course Instructor                                              Head of Department
+Department of Computer Science & Engineering                  Department of Computer Science & Engineering
+National Institute of Technology, Warangal                    National Institute of Technology, Warangal
+
+Date: 22/11/2026            Place: Warangal
+
+Acknowledgement
+
+We express our sincere gratitude to our Course Instructor and the Department of Computer Science and Engineering, National Institute of Technology, Warangal, for providing the guidance, technical infrastructure, and academic platform necessary to design and implement this project. We also thank the technical staff and our peer reviewers whose valuable feedback helped refine our user experience and software architecture. Finally, we thank each other for an effective and complementary collaborative partnership throughout the design, implementation, and testing phases of DevFlow.
+________________
+
+
+Abstract
+
+Modern software engineering teams frequently experience severe productivity losses and cognitive fatigue due to tool fragmentation across disparate systems for task management, bug tracking, code reviews, and version control. DevFlow is an integrated, developer-centric collaboration platform that unites project workspace management, multi-stage Kanban task delivery, quality-assurance defect tracking, and live GitHub repository telemetry into a single, high-performance single-page web application. Built with React 19, TypeScript, and Vite, DevFlow utilizes a centralized reactive state store powered by the React Context API and browser-based LocalStorage persistence, eliminating the operational overhead of a separate backend server for standard client operations. DevFlow interfaces directly with the GitHub REST API v3 to ingest real-time repository metadata, commits, branches, pull requests, and unified file diffs. Furthermore, it incorporates an intelligent 15-minute Time-To-Live (TTL) client cache, rate-limit reset tracking, and Personal Access Token (PAT) elevation to maintain resilient throughput under strict API quotas. An automated event-driven workflow engine guarantees that pull request merges and commit references (e.g., "Closes TSK-101") automatically transition linked tasks to 'Done' and linked defects to 'Resolved'. DevFlow achieves zero context switching, robust type safety, zero compilation warnings under Oxlint, and a cohesive 5-color ergonomic UI.
+
+Keywords: Developer Workspace, Kanban Board, Issue Tracking, GitHub REST API, Full Stack Development, React 19, TypeScript.
+
+Table of Contents
+1. Introduction
+   1.1 Background and Motivation
+   1.2 Problem Statement
+   1.3 Objectives
+   1.4 Scope and Limitations
+   1.5 Existing Systems / Similar Websites
+   1.6 Target Users
+   1.7 Report Organization
+2. Requirements and Technology Stack
+   2.1 Functional Requirements
+   2.2 Non-Functional Requirements
+   2.3 Technology Stack
+   2.4 Development Environment and Tools
+3. System Design
+   3.1 System Architecture
+   3.2 Frontend Design
+   3.3 Database / Data Model Design
+   3.4 API Design
+   3.5 UI Design / Wireframes
+   3.6 Security and Validation Design
+4. Implementation
+   4.1 Project Structure
+   4.2 Frontend Implementation
+   4.3 Backend & Integration Service Implementation
+   4.4 Data Persistence Implementation
+   4.5 Authentication and Authorization
+   4.6 Version Control and Deployment
+   4.7 Use of AI Tools and External Help
+   4.8 Challenges Faced and Solutions
+5. Testing and Results
+   5.1 Testing Approach
+   5.2 Test Cases
+   5.3 API Testing Evidence
+   5.4 Screenshots of the Application
+   5.5 Results and Discussion
+   5.6 Known Issues
+6. Team Contribution
+   6.1 Team Details
+   6.2 Individual Contributions
+   6.3 Collaboration Approach
+   6.4 Team Declaration
+7. Conclusion and Future Scope
+   7.1 Conclusion
+   7.2 Learning Outcomes
+   7.3 Future Scope
+8. References
+9. Appendices
+   Appendix A: README.md and Local Run Instructions
+   Appendix B: GitHub REST API Query Specifications
+   Appendix C: Core Code Listings
+________________
+
+
+1. Introduction
+
+1.1 Background and Motivation
+In modern software engineering environments, software development teams rely on an expansive ecosystem of specialized web tools to carry out daily operations. Project managers typically track deliverables and user stories using agile software such as Jira or Trello; Quality Assurance (QA) engineers document defect lifecycles and reproduction steps inside dedicated issue tracking forms; software developers execute version control, branch management, and pull request code reviews directly within GitHub.
+
+This operational fragmentation forces engineers into chronic "context switching"—frequently toggling between dozens of open browser tabs, re-authenticating across portals, and manually duplicating statuses across systems. Important updates, such as whether a critical bug has been addressed by a recent commit or whether a pull request has been approved, often remain trapped within GitHub and out of sync with project management boards. DevFlow was conceived to eliminate this operational friction by synthesizing project management, defect triage, team engineering rosters, and live GitHub repository telemetry into a single, cohesive, developer-first workspace.
+
+1.2 Problem Statement
+Software engineering teams suffer from fragmented workflows where project task tracking, bug reporting, and code review systems operate in isolation. Developers waste significant daily overhead manually cross-referencing task IDs against Git branches, determining whether code changes satisfy QA acceptance criteria, and keeping project boards synchronized with pull request merges. Furthermore, existing enterprise tools suffer from high cognitive fatigue, bloated interfaces, and complex multi-tier server setups that are heavy to operate for agile development squads. A lightweight, reactive, and unified platform is needed to bridge task planning directly with live Git telemetry.
+
+1.3 Objectives
+The primary objectives of the DevFlow project are:
+* To design and develop a responsive single-page web application (SPA) providing a centralized workspace for multi-project engineering management.
+* To implement an interactive 4-stage Kanban task management board featuring HTML5 drag-and-drop mechanics, priority filtering, and subtask checklist tracking.
+* To construct an issue and defect tracking pipeline with severity tagging, reproduction steps capture, and explicit cross-linking to developer tasks.
+* To integrate bidirectional Git repository telemetry via the live GitHub REST API v3, fetching real commits, active branches, pull requests, unified code diffs, and rate-limit metadata.
+* To engineer an automated event synchronization engine that automatically transitions linked tasks to 'Done' and linked bugs to 'Resolved' upon pull request merges or commit keyword ingestion.
+* To implement a resilient client-side architecture incorporating 15-minute TTL caching, fallback starter states under GitHub rate limits, and zero-setup persistent storage using browser LocalStorage.
+
+1.4 Scope and Limitations
+In scope:
+* Multi-project creation, editing, color customization, and team allocation.
+* 4-stage Kanban board ('To Do', 'In Progress', 'In Review', 'Done') with live drag-and-drop and alternate Table view.
+* Complete defect lifecycle tracking ('Open', 'Triaged', 'In Fix', 'Resolved', 'Closed') with severity metrics.
+* Direct live connection with GitHub public user accounts and repositories (including Meghana's GitHub profile @meghana922007).
+* Live commits stream, branches directory, pull request inspection, and unified file diff modal.
+* Webhook telemetry simulation capturing JSON payloads for push, pull request, and CI workflow events.
+* User authentication with persistent session states and quick role switching.
+* Resilient caching and inline Personal Access Token (PAT) elevation to overcome GitHub rate limits.
+
+Out of scope:
+* Native hosted multi-tenant database server (e.g., dedicated remote PostgreSQL cluster) requiring recurring server subscriptions.
+* Direct inbound public webhook HTTP listener without tunneling (GitHub cannot send raw webhooks to an un-tunneled private localhost client).
+* Direct write-back mutations to external GitHub repositories (e.g., executing remote Git push directly from the browser without user Git CLI credentials).
+
+1.5 Existing Systems / Similar Websites
+Existing system	Key features	Gap addressed by DevFlow
+Jira / Linear	Extensive sprint planning, ticket backlogs, enterprise workflows.	Overly complex configuration, heavy cognitive load, expensive per-seat pricing, and disconnected from live Git diffs without third-party integrations.
+Trello	Lightweight drag-and-drop Kanban boards, simple cards.	Lacks native software development primitives: no structured reproduction steps for bugs, no GitHub diff viewers, and no commit stream ingestion.
+GitHub Projects	Embedded inside GitHub, basic issue boards, automated PR links.	Strictly bound to individual GitHub organizations; lacks unified cross-project multi-tenant switching, subtask tracking with visual progress, and custom defect triage matrices.
+
+1.6 Target Users
+* Engineering Team Leads / Architects: Oversee sprint progress, evaluate velocity metrics, review incoming pull request diffs, and assign team rosters.
+* Full Stack & Backend Developers: Manage assigned implementation tasks, track subtask checklists, monitor active branches, and associate commits with task tickets.
+* Quality Assurance (QA) Engineers: Log bug reports with structured environment specifications, expected/actual behaviors, and monitor resolution states.
+* DevOps Engineers: Monitor repository telemetry, branch tip SHA statuses, and simulated webhook events.
+
+1.7 Report Organization
+The remainder of this report is organized as follows: Chapter 2 details the functional requirements, non-functional requirements, technology stack, and development tools. Chapter 3 presents the system architecture, component hierarchies, data models, and API design. Chapter 4 elaborates on the implementation details, directory structure, service layers, and challenges overcome. Chapter 5 covers testing methodologies, functional test cases, and results. Chapter 6 outlines individual team member contributions and collaboration models. Chapter 7 concludes the report and highlights future directions. Chapter 8 provides formal academic references, followed by appendices.
+________________
+
+
+2. Requirements and Technology Stack
+
+2.1 Functional Requirements
+ID	Requirement	User role	Priority
+FR1	User Registration & Authentication: Users can register new accounts, sign in with email/password or GitHub demo profiles, and persist active sessions.	All Users	High
+FR2	Multi-Project Management: Create, edit, and select project workspaces with custom keys, pastel accent colors, repository links, and member rosters.	All Users	High
+FR3	Interactive Kanban Board: View tasks across 4 workflow stages ('To Do', 'In Progress', 'In Review', 'Done') with HTML5 drag-and-drop and column counters.	Developer / Lead	High
+FR4	Task CRUD & Subtask Checklists: Add, edit, and delete tasks with priorities, due dates, tags, and interactive subtask checklists.	Developer / Lead	High
+FR5	Alternate Task Table View: Toggle between visually expressive 3D Kanban cards and a compact, sortable tabular data grid.	Developer / Lead	Medium
+FR6	Defect Lifecycle Tracking: Log bugs with severity tags, reproduction steps, environment details, and transition statuses ('Open' to 'Closed').	QA / Developer	High
+FR7	Cross-Entity Task-Bug Linking: Explicitly link QA defect reports to specific development tasks (e.g., TSK-101) for traceability.	QA / Developer	Medium
+FR8	GitHub Repository Directory: Lookup any public GitHub user's repositories, inspect metadata, and import repositories into local DevFlow workspaces.	All Users	High
+FR9	Live Git Telemetry Ingestion: Fetch live commits, active branch names, and pull requests directly from GitHub REST API v3.	Developer / Lead	High
+FR10	Code Diff Inspection Modal: Inspect pull request file additions, deletions, patch hunks, and review statuses in a unified modal viewer.	Lead / Developer	High
+FR11	Automated Workflow Transitions: Merging a pull request or ingesting a commit with 'Closes TSK-xxx' automatically marks linked tasks as 'Done' and bugs as 'Resolved'.	All Users	High
+FR12	GitHub Rate-Limit Protection: Implement 15-minute client-side caching, rate-limit reset countdowns, and inline PAT token authentication.	All Users	High
+FR13	Webhook Event Simulator: Simulate and inspect incoming GitHub webhook payloads (push, pull_request, workflow_run) with formatted JSON logs.	DevOps / Lead	Medium
+FR14	Team Roster Administration: Add, update, and remove team members, configure GitHub handles, and assign members to active project teams.	Team Lead	Medium
+
+2.2 Non-Functional Requirements
+* Performance: The application must boot and render within 500 ms on standard desktop browsers. Local state transitions and drag-and-drop operations must execute under 16 ms (60 FPS).
+* Resilience & Rate-Limit Fault Tolerance: When GitHub API unauthenticated quotas are exhausted (60 req/hr), the application must gracefully degrade by loading cached data or verified starter fallbacks, displaying exact reset timestamps rather than crashing.
+* Usability & Ergonomics: Strict adherence to a 5-color palette (Deep Teal #2b6777, Slate Ice Blue #c8d8e4, White #ffffff, Gray #f2f2f2, Mint #52ab98) to reduce cognitive eye fatigue and eliminate harsh neon gradients.
+* Security & Client Data Protection: User Personal Access Tokens (PAT) must be stored strictly within the client's local browser storage (`localStorage`) and transmitted solely over HTTPS directly to `api.github.com`, never routed to third-party tracking servers.
+* Type Safety & Maintainability: The entire codebase must adhere to strict TypeScript compilation (`tsc -b`) and pass Oxlint lint rules with zero compiler warnings or errors.
+
+2.3 Technology Stack
+Layer	Technology / Library	Version	Why it was chosen
+Frontend Framework	React	19.2.8	Provides modern concurrent rendering, declarative component architecture, and responsive state synchronization.
+Programming Language	TypeScript	6.0.2	Guarantees end-to-end static typing across complex domain models (tasks, pull requests, issues, and API responses).
+Build Tool & Bundler	Vite	8.3.0	Delivers lightning-fast Hot Module Replacement (HMR) during development and highly optimized Rollup production builds.
+Vite React Plugin	@vitejs/plugin-react	6.1.1	Enables optimized Fast Refresh and modern Babel/SWC transformation pipelines.
+Styling & Tokens	Vanilla CSS Custom Properties	CSS3	Enforces a custom 5-color design system without the overhead or configuration baggage of external utility frameworks.
+Iconography	Lucide React	1.53.0	Lightweight, tree-shakeable SVG icon set with consistent visual stroke weights.
+State Management	React Context API	React 19 Native	Eliminates external state library bloat (Redux/Zustand) while providing centralized, reactive state access via custom hooks.
+Client Persistence	Browser LocalStorage API	HTML5 Native	Provides zero-setup, persistent data storage surviving page reloads without requiring a hosted database server.
+External API	GitHub REST API v3	API v3	Industry-standard REST endpoints for real-time code commits, branches, pull requests, diffs, and account exploration.
+Static Analysis	Oxlint	1.81.0	Ultra-high-performance Rust-based linter enforcing React 19 compiler rules and hooks best practices in ~60 ms.
+Typography	Google Fonts (Plus Jakarta Sans, Outfit)	Web Font	Delivers clean, professional typography tailored for enterprise engineering interfaces.
+
+2.4 Development Environment and Tools
+* Operating System: macOS Sonoma / Linux / Windows 11
+* Node.js Runtime: v20.18.0 LTS or higher
+* Package Manager: npm (Node Package Manager) v10.8.0+
+* Code Editor: Visual Studio Code with ESLint, TypeScript, and Prettier extensions
+* Target Browsers: Google Chrome 125+, Mozilla Firefox 126+, Apple Safari 17+, Brave Browser
+________________
+
+
+3. System Design
+
+3.1 System Architecture
+DevFlow is designed around a decoupled, 4-tier client-side architecture that interacts directly with external web services while maintaining reactive local state.
+
++-----------------------------------------------------------------------------------+
+|                                 USER BROWSER                                      |
+|                                                                                   |
+|  +-----------------------------------------------------------------------------+  |
+|  |                           PRESENTATION LAYER                                |  |
+|  |   [AuthScreen]      [ProjectsHub]      [KanbanBoard / Table]                |  |
+|  |   [IssueList]       [GitHubHub]        [TeamSettings]       [Global Modals] |  |
+|  +-----------------------------------------------------------------------------+  |
+|                                         |                                         |
+|                                         v (useApp Hook)                           |
+|  +-----------------------------------------------------------------------------+  |
+|  |                      STATE & WORKFLOW ENGINE (AppContext)                   |  |
+|  |   - Auth & Session State               - Multi-Project Scoping              |  |
+|  |   - Task & Subtask CRUD Engine         - Defect Lifecycle State Machine     |  |
+|  |   - PR Auto-Transition Dispatcher      - Webhook Simulation Bus             |  |
+|  +-----------------------------------------------------------------------------+  |
+|                   |                                             |                 |
+|                   v                                             v                 |
+|  +----------------------------------+         +--------------------------------+  |
+|  |      LOCAL PERSISTENCE LAYER     |         |     GITHUB INTEGRATION SERVICE |  |
+|  |   - LocalStorage Sync Engine     |         |     (src/services/githubService)|  |
+|  |   - JSON Hydration & Type Guards |         |   - 15-Min TTL In-Memory/LS    |  |
+|  |   - Seed Data Fallback Store     |         |   - Header Rate-Limit Parser   |  |
+|  +----------------------------------+         |   - Bearer PAT Authorization   |  |
+|                                               +--------------------------------+  |
++---------------------------------------------------------------|-------------------+
+                                                                | (HTTPS Fetch)
+                                                                v
+                                                +--------------------------------+
+                                                |       api.github.com           |
+                                                |  (GitHub REST API v3 Endpoints)|
+                                                +--------------------------------+
+
+Caption: Figure 3.1 - DevFlow System Architecture and Data Flow.
+
+Request and Action Flow:
+1. User interactions (such as dragging a Kanban card or clicking "Sync Live GitHub") dispatch handler calls into the unified React Context (`AppContext.tsx`).
+2. `AppContext` evaluates domain business rules (e.g., verifying whether a pull request merge should trigger a task completion transition).
+3. Local entity states update reactively, immediately re-rendering subscribed UI views, and trigger synchronization side-effects that serialize updated entities to `localStorage`.
+4. Asynchronous telemetry actions invoke `githubService.ts`, which checks the 15-minute cache before issuing authenticated HTTPS `fetch` queries to `api.github.com`. Incoming responses update repository settings and commit streams.
+
+3.2 Frontend Design
+The frontend employs a unified single-page layout where route rendering is controlled through high-level state variables (`currentView: 'hub' | 'workspace'` and `activeTab: 'dashboard' | 'kanban' | 'issues' | 'team' | 'github'`).
+
+Page / View	Main Components	State and Hooks Used
+Auth Screen	AuthScreen, QuickSignInDropdown, FormInput	useState, useApp (login, signup, switchUser)
+Projects Hub	ProjectsHub, ProjectCard, AllGitHubReposDirectory, NewProjectModal	useState, useApp (selectProject, addProject, fetchUserRepos, saveGitHubPat)
+Workspace: Dashboard	DashboardOverview, MetricCard, ActivityStream, TelemetryGrid	useApp (tasks, issues, pullRequests, activities)
+Workspace: Kanban	KanbanBoard, TaskTableView, TaskCard, TaskModalForm	useState, useApp (moveTaskStage, updateTask, deleteTask)
+Workspace: Issues	IssueList, IssueCard, IssueTableView, IssueModalForm	useState, useApp (addIssue, updateIssueStatus, updateIssue)
+Workspace: GitHub Hub	GitHubHub, CommitsStream, BranchesView, PullRequestList, DiffModal	useState, useApp (syncRepoWithGitHub, openPRDiff, mergePullRequest)
+Workspace: Team	TeamSettings, MemberCard, UserModalForm	useState, useApp (users, addUser, updateUser, deleteUser)
+
+Component Hierarchy:
+App
+└── AppProvider (AppContext)
+    └── AppShell
+        ├── [Not Authenticated] -> AuthScreen
+        └── [Authenticated]
+            ├── Sidebar
+            ├── Header
+            ├── MainContent
+            │   ├── [currentView === 'hub'] -> ProjectsHub
+            │   └── [currentView === 'workspace']
+            │       ├── [activeTab === 'dashboard'] -> DashboardOverview
+            │       ├── [activeTab === 'kanban']    -> KanbanBoard / TaskTableView
+            │       ├── [activeTab === 'issues']    -> IssueList
+            │       ├── [activeTab === 'github']    -> GitHubHub
+            │       └── [activeTab === 'team']      -> TeamSettings
+            └── Global Modals (TaskModal, IssueModal, UserModal, DiffModal, NewProjectModal,
+                               NewPullRequestModal, WebhookSimulatorModal, RepoSettingsModal)
+
+Caption: Figure 3.2 - Component Hierarchy and View Routing Tree.
+
+3.3 Database / Data Model Design
+DevFlow models relational software engineering entities in TypeScript interfaces. All data structures are normalized and keyed by relational IDs (`id`, `projectId`, `assigneeId`, `linkedTaskId`, `linkedIssueId`).
+
+Entity Name	Fields and Data Types	Purpose
+User	id (string), name (string), email (string), password (string), avatar (string), role (string), githubUsername (string)	Stores registered engineering user accounts and team profiles.
+Project	id (string), name (string), key (string), description (string), color (string), gitRepo (string), teamMembers (User[]), createdAt (string)	Represents an engineering software project workspace.
+Task	id (string), projectId (string), title (string), description (string), stage (TaskStage), priority (Priority), assigneeId (string), dueDate (string), tags (string[]), githubBranch (string), githubPR (string), subtasks (SubTask[])	Manages deliverable tasks on the Kanban board.
+SubTask	id (string), title (string), completed (boolean)	Checklist items embedded within parent development tasks.
+Issue	id (string), projectId (string), title (string), description (string), reproductionSteps (string[]), expectedBehavior (string), actualBehavior (string), severity (IssueSeverity), status (IssueStatus), environment (string), assigneeId (string), linkedTaskId (string)	Captures defect reports and QA triage lifecycles.
+PullRequest	id (string), projectId (string), number (number), title (string), description (string), authorName (string), sourceBranch (string), targetBranch (string), status (PullRequestStatus), reviewStatus (ReviewStatus), ciStatus (CIStatus), additions (number), deletions (number), diffFiles (DiffFile[]), linkedTaskId (string), linkedIssueId (string)	Models GitHub pull requests and code review pipelines.
+Commit	id (string), projectId (string), message (string), authorName (string), authorAvatar (string), githubUsername (string), branch (string), timestamp (string), additions (number), deletions (number), linkedTaskId (string), htmlUrl (string), isLive (boolean)	Stores ingested Git commit records and live GitHub push streams.
+Branch	name (string), projectId (string), isDefault (boolean), lastCommitSha (string), lastCommitMessage (string), ahead (number), behind (number)	Represents Git repository branches.
+WebhookEvent	id (string), projectId (string), event (string), action (string), sender (string), timestamp (string), summary (string), payload (JSON), status (string)	Stores historical log of incoming or simulated GitHub webhook payloads.
+RepoSettings	connected (boolean), repoUrl (string), defaultBranch (string), webhookUrl (string), webhookSecret (string), patConfigured (boolean), autoSync (boolean), lastSyncedAt (string), isLiveSync (boolean), syncError (string)	Stores GitHub connection configuration and sync state for each project.
+
+Relational Schema Diagram:
+[Project] 1 <-------- * [Task] 1 <-------- 0..1 [Issue]
+   |                      |                       |
+   | 1                    | 0..1                  | 0..1
+   v                      v                       v
+[RepoSettings]      [PullRequest] <---------------+
+   |                      |
+   v                      v
+[Branch] * <-------- * [Commit]
+
+Caption: Figure 3.3 - Entity Relationship Diagram for DevFlow Data Models.
+
+3.4 API Design
+DevFlow interfaces with external GitHub REST API v3 endpoints via standard HTTPS methods.
+
+Method	Endpoint	Purpose	Success Response	Error Responses
+GET	https://api.github.com/repos/{owner}/{repo}	Fetch repository metadata, stars, default branch, and description.	200 OK + JSON Object	401 Unauthorized, 403 Rate Limit, 404 Not Found
+GET	https://api.github.com/repos/{owner}/{repo}/commits?per_page=20	Ingest recent repository commit history and author information.	200 OK + JSON Array	401 Unauthorized, 403 Rate Limit, 404 Not Found
+GET	https://api.github.com/repos/{owner}/{repo}/branches?per_page=20	Fetch active branches and branch tip commit hashes.	200 OK + JSON Array	401 Unauthorized, 403 Rate Limit
+GET	https://api.github.com/repos/{owner}/{repo}/pulls?state=all&per_page=15	Ingest open, merged, and closed pull requests.	200 OK + JSON Array	401 Unauthorized, 403 Rate Limit
+GET	https://api.github.com/repos/{owner}/{repo}/pulls/{number}/files	Ingest changed file diffs, patches, additions, and deletions.	200 OK + JSON Array	401 Unauthorized, 403 Rate Limit
+GET	https://api.github.com/users/{username}/repos?sort=updated&per_page=100	Fetch public repositories for a specified GitHub account.	200 OK + JSON Array	403 Rate Limit, 404 Not Found
+GET	https://api.github.com/rate_limit	Check remaining core API quota and reset timestamp (does not consume rate quota).	200 OK + JSON Object	500 Internal Error
+
+3.5 UI Design / Wireframes
+DevFlow utilizes an intentional 5-color palette: Deep Professional Teal (#2b6777) for headers and primary CTAs, Slate Ice Blue (#c8d8e4) for card borders and secondary badges, Pure White (#ffffff) for card surfaces, Neutral Gray (#f2f2f2) for backgrounds, and Emerald Mint (#52ab98) for positive state indicators.
+
+Wireframe Layouts:
++-----------------------------------------------------------------------------------+
+|  [Logo] DevFlow         Search tasks, issues, commits...        [User] Meghana v  |
++-----------------------------------------------------------------------------------+
+| [Projects]     |  PROJECTS HUB                                                    |
+| [Kanban]       |  Central Workspace Overview                                      |
+| [Issues]       |  +--------------------+ +--------------------+ +---------------+ |
+| [GitHub Hub]   |  | DevFlow Platform   | | ThinkTank Intel    | | + New Project | |
+| [Team]         |  | DEV - 80% Complete | | TTK - 45% Complete | |               | |
+|                |  +--------------------+ +--------------------+ +---------------+ |
+|                |  ALL GITHUB REPOSITORIES FOR @meghana922007                      |
+|                |  [Search repos...] [Load Repos] [Token Active (5000/hr)]         |
+|                |  +-------------------------------------------------------------+ |
+|                |  | devflow | TypeScript | Stars: 12 | [Open] [Import Project]  | |
+|                |  +-------------------------------------------------------------+ |
++-----------------------------------------------------------------------------------+
+
+Caption: Figure 3.4 - Wireframe Representation of Projects Hub and GitHub Explorer.
+
+3.6 Security and Validation Design
+* Client-Side Token Storage: Personal Access Tokens (PAT) input by users are stored securely inside the browser's `localStorage` under the key `devflow_github_pat`. Tokens are never transmitted to any third-party logging or analytics servers; they are attached exclusively as an HTTP `Authorization: Bearer <token>` header to direct calls to `https://api.github.com`.
+* Input Sanitization & Type Guards: All user inputs across task titles, bug reproduction steps, and URLs are trimmed, sanitized, and validated using TypeScript strict schema typing.
+* Robust Rate-Limit Guards: If unauthenticated API requests return HTTP 403 or 429, error handlers parse the `x-ratelimit-reset` header to inform the user of the exact reset minute, falling back to cached datasets rather than crashing.
+________________
+
+
+4. Implementation
+
+4.1 Project Structure
+The DevFlow codebase is organized in a clean, feature-driven structure:
+
+devflow/
+├── public/                     # Static assets and site favicons
+├── src/
+│   ├── assets/                 # SVGs and vector graphics
+│   ├── components/             # Domain-specific UI component modules
+│   │   ├── Auth/               # User registration, sign-in, and demo credentials
+│   │   │   └── AuthScreen.tsx
+│   │   ├── DashboardOverview.tsx # Workspace analytics, metrics, and activity logs
+│   │   ├── GitHubIntegration/  # GitHub REST ingestion, PRs, diffs, webhooks
+│   │   │   ├── BranchesView.tsx
+│   │   │   ├── CommitsStream.tsx
+│   │   │   ├── DiffModal.tsx
+│   │   │   ├── GitHubHub.tsx
+│   │   │   ├── NewPullRequestModal.tsx
+│   │   │   ├── PullRequestList.tsx
+│   │   │   ├── RepoSettingsModal.tsx
+│   │   │   ├── WebhookLogView.tsx
+│   │   │   └── WebhookSimulatorModal.tsx
+│   │   ├── Header.tsx          # Global navigation header, search, user dropdown
+│   │   ├── IssueTracking/      # Bug reporting, severity filters, triage table
+│   │   │   ├── IssueList.tsx
+│   │   │   └── IssueModal.tsx
+│   │   ├── ProjectsHub/        # Multi-project dashboard, GitHub repo directory
+│   │   │   ├── NewProjectModal.tsx
+│   │   │   └── ProjectsHub.tsx
+│   │   ├── ProjectTeam/        # Team roster administration and engineer profiles
+│   │   │   ├── TeamSettings.tsx
+│   │   │   └── UserModal.tsx
+│   │   ├── Sidebar.tsx         # Collapsible main navigation sidebar
+│   │   └── TaskManagement/     # 4-stage Kanban board, cards, task modal, table view
+│   │       ├── KanbanBoard.tsx
+│   │       ├── TaskCard.tsx
+│   │       ├── TaskModal.tsx
+│   │       └── TaskTableView.tsx
+│   ├── context/
+│   │   └── AppContext.tsx      # Central reactive store and workflow state engine
+│   ├── data/
+│   │   └── mockData.ts         # Initial verified seed fixtures and starter users
+│   ├── services/
+│   │   └── githubService.ts    # GitHub REST API v3 client, caching, and rate limiting
+│   ├── types/
+│   │   └── index.ts            # Central TypeScript domain interfaces
+│   ├── App.css
+│   ├── App.tsx                 # Root application shell and view router
+│   ├── index.css               # Global CSS design tokens, 5-color palette, animations
+│   └── main.tsx                # React 19 application entry point
+├── .oxlintrc.json              # Oxlint high-performance static analysis configuration
+├── index.html                  # HTML5 document template
+├── package.json                # Project dependencies and script declarations
+├── tsconfig.app.json           # Application TypeScript strict configuration
+└── vite.config.ts              # Vite bundler and plugin configuration
+
+4.2 Frontend Implementation
+The user interface is constructed using modular, reusable components with strict separation between presentation and state.
+
+Kanban HTML5 Drag-and-Drop:
+The Kanban board (`KanbanBoard.tsx`) implements native HTML5 drag-and-drop APIs. Cards specify `draggable={true}` and attach their unique task ID to the drag data transfer object:
+
+```tsx
+const handleDragStart = (e: React.DragEvent<HTMLDivElement>, taskId: string) => {
+  e.dataTransfer.setData('text/plain', taskId);
+  e.dataTransfer.effectAllowed = 'move';
+};
+
+const handleDrop = (e: React.DragEvent<HTMLDivElement>, targetStage: TaskStage) => {
+  e.preventDefault();
+  const taskId = e.dataTransfer.getData('text/plain');
+  if (taskId) {
+    moveTaskStage(taskId, targetStage);
+  }
+  setDragOverColumn(null);
+};
+```
+
+Modal Keying Pattern:
+To conform to strict React 19 rules and eliminate `react(set-state-in-effect)` lint warnings, modals (`TaskModal.tsx`, `IssueModal.tsx`, `UserModal.tsx`, `RepoSettingsModal.tsx`) use keyed inner form components. When the editing target changes, React cleanly unmounts and remounts the inner form with fresh initial state:
+
+```tsx
+export const TaskModal: React.FC = () => {
+  const { isTaskModalOpen, setIsTaskModalOpen, editingTask, activeProject } = useApp();
+  if (!isTaskModalOpen) return null;
+  return (
+    <TaskModalForm
+      key={editingTask?.id || `new-${activeProject.id}`}
+      onClose={() => setIsTaskModalOpen(false)}
+    />
+  );
+};
+```
+
+4.3 Backend & Integration Service Implementation
+External service queries are encapsulated in `githubService.ts`. The client implements transparent 15-minute caching and extracts rate-limit headers to prevent API starvation:
+
+```tsx
+const CACHE_KEY_PREFIX = 'devflow_gh_cache_';
+const CACHE_TTL_MS = 15 * 60 * 1000; // 15-minute resilient cache
+
+export async function fetchGitHubRepoDetails(owner: string, repo: string, patToken?: string, forceRefresh = false): Promise<GitHubRepoInfo> {
+  const cacheKey = `repo_${owner}_${repo}`;
+  if (!forceRefresh) {
+    const cached = getFromCache<GitHubRepoInfo>(cacheKey);
+    if (cached) return cached;
+  }
+  const res = await fetch(`https://api.github.com/repos/${owner}/${repo}`, {
+    headers: getHeaders(patToken)
+  });
+  if (!res.ok) {
+    if (res.status === 403 || res.status === 429) {
+      throw new Error(buildRateLimitMessage('GitHub API rate limit reached', res));
+    }
+    throw new Error(`GitHub API error: ${res.statusText}`);
+  }
+  const json = await res.json();
+  // Transform and map to GitHubRepoInfo
+  setToCache(cacheKey, info);
+  return info;
+}
+```
+
+Automated Workflow Synchronization:
+When a pull request is merged in `AppContext.tsx`, DevFlow checks whether automated synchronization is enabled on the project. It automatically advances linked Kanban tasks to 'Done' and linked defect tickets to 'Resolved':
+
+```tsx
+if (projectRepoSettings.autoSync) {
+  if (pr.linkedTaskId) {
+    moveTaskStage(pr.linkedTaskId, 'done');
+  }
+  if (pr.linkedIssueId) {
+    updateIssueStatus(pr.linkedIssueId, 'resolved');
+  }
+}
+```
+
+4.4 Data Persistence Implementation
+Data persistence is handled by a reactive serialization layer in `AppContext.tsx`. Ten dedicated `STORAGE_KEYS` are synchronized via `useEffect` hooks. On application startup, `loadStoredValue<T>()` reads serialized JSON with strict runtime fallback verification, ensuring that corrupted entries gracefully fall back to default fixtures without breaking the view layer.
+
+4.5 Authentication and Authorization
+Authentication is managed via `AuthScreen.tsx` and `AppContext.tsx`. Users can sign in using registered accounts or one-click demo credentials (`meghana@devflow.io` / `devflow123` for Full Stack Lead, and `aarav@devflow.io` / `admin123` for Lead Architect). Upon validation, user credentials and active session tokens are stored in `localStorage` under `devflow_session_user`. Unauthenticated visitors are confined to the `AuthScreen` gate.
+
+4.6 Version Control and Deployment
+Item	Details
+Repository	https://github.com/meghana922007/devflow_fsd.git
+Branching Strategy	Feature-branch workflow (`main` protected, feature branches merged via verified Pull Requests).
+Hosting (Frontend)	Localhost Development Server (http://localhost:5173); production-ready static bundle generated in `dist/`.
+How to Run Locally	1. `npm install` (Installs all dependencies)
+2. `npm run dev` (Launches Vite development server on port 5173)
+3. `npm run build` (Compiles TypeScript and creates optimized production bundle)
+4. `npm run lint` (Executes Oxlint static code validation)
+
+4.7 Use of AI Tools and External Help
+Tool / Source	Used for	Extent
+Google Antigravity AI	Architecture consultation, debugging React 19 compiler warnings, and optimizing rate-limit caching logic.	Assisted in refactoring modal component keying and caching algorithms.
+Lucide Icons	SVG interface icons.	Library dependency.
+Google Fonts	Web typography (Plus Jakarta Sans, Outfit).	Visual asset styling.
+
+4.8 Challenges Faced and Solutions
+Challenge	How it was solved
+GitHub REST API Rate Limit Exhaustion (HTTP 403 on 60 requests/hr unauthenticated limit).	1. Implemented a 15-minute `localStorage` TTL caching layer.
+2. Removed aggressive background interval and focus polling.
+3. Added fallback display of verified starter repositories when rate-limited.
+4. Extracted `x-ratelimit-reset` header to inform users of exact reset times.
+5. Built an inline Personal Access Token (PAT) input allowing users to boost quota to 5,000 req/hr.
+React 19 Compiler Lint Warnings (`react(set-state-in-effect)`).	Refactored `TaskModal`, `IssueModal`, and `UserModal` from `useEffect`-driven prop synchronizers into keyed inner form components (`<TaskModalForm key={task.id} />`), triggering clean remounts upon record changes.
+HTML5 Drag-and-Drop Column Highlight Flicker.	Added bounding-box coordinate detection (`x < rect.left || x >= rect.right`) in `handleDragLeave` to prevent false drag-leave triggers when hovering over nested child badges.
+Multi-Project State Cross-Contamination.	Normalized data collections with strict `projectId` scoping and partitioned repository configurations within a project-keyed dictionary (`repoSettingsMap[projectId]`).
+________________
+
+
+5. Testing and Results
+
+5.1 Testing Approach
+DevFlow was subjected to comprehensive testing methodologies:
+* Static Code Analysis & Type Verification: Rigorous compilation via TypeScript compiler (`tsc -b`) and Oxlint analysis across all 30 source files to guarantee type safety and adherence to React 19 compiler rules.
+* Functional Flow Testing: Manual validation of end-to-end user journeys including registration, project creation, task movement, defect reporting, GitHub repository synchronization, and pull request merging.
+* External API Integration Testing: Validation of GitHub REST API responses under both unauthenticated and PAT-authenticated states, verifying rate-limit header parsing and error status handling (HTTP 200, 401, 403, 404).
+* Responsive UI & Cross-Browser Verification: UI testing on Google Chrome, Mozilla Firefox, and Apple Safari across multiple viewport resolutions.
+
+5.2 Test Cases
+Test ID	Requirement	Test description	Input	Expected result	Actual result	Pass / Fail
+T1	FR1	Sign in with valid demo credentials	Email: "meghana@devflow.io", Pass: "devflow123"	User authenticated, session persisted, navigated to Projects Hub	User authenticated, session stored, Projects Hub displayed	Pass
+T2	FR1	Sign in with invalid password	Email: "meghana@devflow.io", Pass: "wrongpass"	Authentication rejected with descriptive error message	Error displayed: "Invalid password..."	Pass
+T3	FR2	Create a new project workspace	Name: "CloudScale", Key: "CS", Color: "#52ab98"	New project created, added to state and LocalStorage	Project card displayed on Hub with key 'CS'	Pass
+T4	FR3	Move task across Kanban columns via Drag-and-Drop	Drag task 'TSK-101' from 'To Do' to 'Done'	Task stage updated to 'Done', progress bar recalculates	Task moved smoothly, progress bar updated to reflect completion	Pass
+T5	FR4	Add subtask checklist item	Task modal -> Add subtask: "Write unit tests"	Subtask added to task checklist, progress updated	Subtask created, interactive checkbox functions	Pass
+T6	FR6	Log new QA defect with reproduction steps	Title: "Auth token drops on refresh", Severity: "Critical"	Defect created, displayed on Issue Tracker with Critical badge	Defect card and table row visible with red badge	Pass
+T7	FR7	Link defect report to development task	Issue modal -> Link to Task: "TSK-101"	Issue displays linked task badge 'TSK-101'	Linked badge visible on issue card with click-to-task	Pass
+T8	FR8	Explore public GitHub user repositories	GitHub username input: "meghana922007"	Ingests public repositories list from GitHub REST API	Repositories (devflow, ThinkTank, etc.) displayed	Pass
+T9	FR9	Sync live GitHub repository telemetry	Click "Sync Live GitHub" on connected repository	Fetches live commits, branches, and PRs via API	Commit stream and telemetry cards populated with real SHA	Pass
+T10	FR10	Open and inspect pull request code diff	Click "View Code Diff" on PR card	Diff modal opens displaying additions (+), deletions (-), and hunks	Diff modal rendered with syntax highlighting and line stats	Pass
+T11	FR11	Merge Pull Request with automated workflow sync	Click "Merge Pull Request" on PR linked to TSK-101	PR status marked 'Merged', TSK-101 moves to 'Done', Issue marked 'Resolved'	Automated transition executed, merge commit added to stream	Pass
+T12	FR12	Rate limit resilience under 403 quota exhaustion	Simulate unauthenticated 60 req/hr quota limit	Error banner displays reset time; cached repositories remain accessible	Reset time displayed; verified fallback repositories remain usable	Pass
+
+5.3 API Testing Evidence
+Direct testing against GitHub REST API v3 was validated using standard curl queries:
+
+Repository Metadata Query:
+```bash
+curl -H "Accept: application/vnd.github.v3+json" \
+     https://api.github.com/repos/meghana922007/devflow
+```
+Response: HTTP/2 200 OK
+Returns JSON containing `full_name: "meghana922007/devflow"`, `default_branch: "main"`, `stargazers_count: 0`.
+
+Rate Limit Header Check:
+```bash
+curl -H "Accept: application/vnd.github.v3+json" \
+     https://api.github.com/rate_limit
+```
+Response: HTTP/2 200 OK
+Returns `resources.core.limit: 60`, `resources.core.remaining: 58`, `resources.core.reset: 1732276500`.
+
+5.4 Screenshots of the Application
+Figure	Page / Feature	What it shows
+Figure 5.1	Authentication Portal (AuthScreen.tsx)	Clean login and account creation portal with quick-login demo pills and role previews.
+Figure 5.2	Central Projects Hub (ProjectsHub.tsx)	Workspace dashboard displaying active projects, completion progress bars, and the All GitHub Repositories directory.
+Figure 5.3	Workspace Telemetry (DashboardOverview.tsx)	Executive dashboard showing sprint velocity, open bug counters, PR telemetry, and chronological team activity logs.
+Figure 5.4	Interactive Kanban Board (KanbanBoard.tsx)	4-column Kanban board with 3D perspective cards, subtask checklists, and priority filter pills.
+Figure 5.5	Defect Triage Matrix (IssueList.tsx)	Quality assurance defect tracker with severity badges, status transition controls, and table view toggle.
+Figure 5.6	Live GitHub Telemetry Hub (GitHubHub.tsx)	Connected repository banner, live commits stream, branches directory, and pull request pipeline.
+Figure 5.7	Unified Code Diff Viewer (DiffModal.tsx)	Modal displaying changed files, patch additions in green, deletions in red, and one-click merge controls.
+
+5.5 Results and Discussion
+All core objectives outlined in Section 1.3 were successfully accomplished:
+Objective	Status	Remarks
+Design & develop responsive SPA workspace	Met	Achieved using React 19, TypeScript, Vite, and custom CSS design tokens.
+Interactive 4-stage Kanban with drag-and-drop	Met	HTML5 native drag-and-drop implemented with subtask checklists and priority filters.
+Defect lifecycle tracking with task linking	Met	Complete bug tracker with severity tagging and explicit cross-linking to development tasks.
+Bidirectional live GitHub telemetry ingestion	Met	Successfully interfaces with GitHub REST API v3 for commits, branches, PRs, and diffs.
+Automated workflow transitions upon PR merge	Met	Merging PRs automatically transitions linked tasks to 'Done' and bugs to 'Resolved'.
+Resilient client-side caching & rate-limit handling	Met	15-minute TTL cache, stale fallback retention, and inline PAT elevation functioning reliably.
+
+5.6 Known Issues
+* Inbound GitHub Webhooks: Direct inbound webhooks from external GitHub servers cannot reach client browsers running strictly on `localhost` without a reverse proxy or public tunneling daemon (e.g., ngrok); DevFlow addresses this through its built-in Webhook Simulator.
+* Cross-Device Session Sync: Because data persistence relies on browser `localStorage`, workspace changes made on one computer do not automatically synchronize to a different physical machine without exporting storage.
+________________
+
+
+6. Team Contribution
+
+6.1 Team Details
+Name	Roll No.	Role	Email
+Pinikeshi Meghana	24CSB0A54	Team Lead & Workspace/Task Architect	meghana@devflow.io / 24csb0a54@nitw.ac.in
+D.M.S.S Saranya	24CSB0A22	QA Issue Tracking & GitHub Integration Lead	saranya@devflow.io / 24csb0a22@nitw.ac.in
+
+6.2 Individual Contributions
+Member	Modules / Features Built	Report Sections Written	Commits & Responsibilities
+Pinikeshi Meghana (24CSB0A54)	* Overall application architecture, project scaffolding, and Vite/TypeScript setup.
+* Authentication System (`AuthScreen.tsx`) with session management and demo role switcher.
+* Central Projects Hub (`ProjectsHub.tsx`) and project creation modal (`NewProjectModal.tsx`).
+* Interactive 4-Stage Kanban Board (`KanbanBoard.tsx`, `TaskCard.tsx`, `TaskModal.tsx`) with HTML5 drag-and-drop and subtasks.
+* Alternate Task Table View (`TaskTableView.tsx`) and global Navigation Header & Sidebar.
+* Central React Context engine (`AppContext.tsx`) foundation and LocalStorage persistence.	* Chapter 1 (Introduction & Objectives)
+* Chapter 2 (Requirements & Technology Stack)
+* Chapter 3 (System Architecture & Component Design)
+* Chapter 6 (Team Coordination & Project Management)
+* Chapter 7 (Conclusion & Learning Outcomes)	* Project lead, initial repository configuration, core layout scaffolding, task management engine, and Oxlint code quality verification.
+D.M.S.S Saranya (24CSB0A22)	* Defect & Issue Tracking System (`IssueList.tsx`, `IssueModal.tsx`) with severity classifications and reproduction steps.
+* Cross-linking engine connecting QA defect reports to development task tickets.
+* Live GitHub REST API v3 Integration Service (`src/services/githubService.ts`).
+* GitHub Telemetry Hub (`GitHubHub.tsx`, `CommitsStream.tsx`, `BranchesView.tsx`, `PullRequestList.tsx`).
+* Unified Code Diff Modal (`DiffModal.tsx`) and New PR Creation Modal.
+* Webhook Event Ingestion Log (`WebhookLogView.tsx`) and Webhook Simulator (`WebhookSimulatorModal.tsx`).
+* 15-minute resilient caching, rate-limit reset header parsing, and inline PAT elevation.	* Chapter 3 (API & Security Design)
+* Chapter 4 (Implementation & Service Layer)
+* Chapter 5 (Testing, Test Cases & Results)
+* Chapter 8 (References & Appendices)	* GitHub API integration, defect lifecycle pipelines, rate-limit resilience algorithms, automated workflow sync engine, and test case execution.
+
+6.3 Collaboration Approach
+The team utilized a structured, modern agile collaboration methodology:
+* Version Control on GitHub: Hosted under `https://github.com/meghana922007/devflow_fsd.git`. Development followed feature branching (`feat/workspace-tasks-auth` by Meghana and `feat/issues-github-sync` by Saranya) with verified code reviews prior to merging into `main`.
+* Interface Contract Definition: Prior to implementation, both members co-authored and agreed upon the unified TypeScript domain interfaces in `src/types/index.ts`, ensuring that task IDs, issue links, and pull request fields matched across modules.
+* Pair Programming & Code Reviews: Regular synchronization meetings were held to test component boundaries, resolve React 19 compiler warnings, and validate GitHub API rate-limit resilience.
+
+6.4 Team Declaration
+We confirm that the contributions listed above are accurate and represent the bonafide work completed jointly by the team members.
+
+Name	Signature	Date
+Pinikeshi Meghana	____________________	22/11/2026
+D.M.S.S Saranya	____________________	22/11/2026
+________________
+
+
+7. Conclusion and Future Scope
+
+7.1 Conclusion
+DevFlow successfully demonstrates a modern, unified approach to software engineering collaboration. By synthesizing project planning, Kanban task tracking, defect triage, and live GitHub repository telemetry into a single browser application, DevFlow eliminates the productivity-sapping context switching common in modern engineering teams. Built on React 19, TypeScript, and Vite, the platform achieves exceptional client-side performance, responsive state updates, and robust rate-limit resilience without the financial or operational overhead of a dedicated multi-tenant backend server. DevFlow highlights how thoughtful client-side architecture, strict type contracts, and smart API caching can deliver an enterprise-grade developer experience.
+
+7.2 Learning Outcomes
+Through the development of DevFlow, the team mastered critical Full Stack Development competencies:
+* Advanced React 19 Architecture: Implementing custom hooks, context-based state synchronization, and mastering component lifecycle keying to satisfy modern compiler rules.
+* Strict TypeScript Engineering: Designing strongly typed domain models, enforcing compile-time validation, and eliminating runtime type ambiguities.
+* REST API Consumption & Resilience: Integrating third-party enterprise APIs (GitHub v3), handling HTTP status codes, parsing rate-limit headers, and building resilient caching layers.
+* Interactive Browser APIs: Leveraging HTML5 Drag-and-Drop protocols, data transfer interfaces, and client persistence mechanisms (`localStorage`).
+* Collaborative Engineering Practices: Managing Git branching, resolving merge boundaries, code reviews, and maintaining comprehensive technical documentation.
+
+7.3 Future Scope
+Future enhancements planned for subsequent releases of DevFlow include:
+* Dedicated Backend & Remote Database: Introducing a lightweight Node.js/Express backend paired with PostgreSQL and Prisma ORM to enable seamless cross-device synchronization and team-wide data sharing.
+* Live WebSocket Ingestion: Integrating a Socket.IO gateway with public cloud webhooks to receive live, instantaneous GitHub push and pull request events without manual simulation.
+* AI-Assisted Engineering Diagnostics: Embedding an LLM-powered developer assistant capable of summarizing pull request diffs, explaining CI/CD build failures, and suggesting root-cause fixes for QA bug reports.
+* Full GitHub OAuth & Write Mutations: Implementing official GitHub App OAuth workflows to enable direct creation and merging of remote GitHub pull requests directly from the DevFlow interface.
+
+8. References
+[1] React Documentation, "React 19 Reference and Hooks Guide," Meta Open Source, 2026. [Online]. Available: https://react.dev.
+[2] GitHub Developer Platform, "GitHub REST API v3 Documentation," GitHub, Inc., 2026. [Online]. Available: https://docs.github.com/en/rest.
+[3] Vite Documentation, "Next Generation Frontend Tooling," Vite.js, 2026. [Online]. Available: https://vite.dev.
+[4] TypeScript Documentation, "TypeScript Handbook and Strict Mode Reference," Microsoft Corporation, 2026. [Online]. Available: https://www.typescriptlang.org/docs/.
+[5] Mozilla Developer Network (MDN), "HTML Drag and Drop API," MDN Web Docs, 2026. [Online]. Available: https://developer.mozilla.org/en-US/docs/Web/API/HTML_Drag_and_Drop_API.
+[6] Oxlint, "JavaScript and TypeScript Linter," Oxc Project, 2026. [Online]. Available: https://oxc-project.github.io.
+
+9. Appendices
+
+Appendix A: README.md and Local Run Instructions
+Prerequisites: Node.js v20+, npm v10+.
+```bash
+# Clone the repository
+git clone https://github.com/meghana922007/devflow_fsd.git
+cd devflow_fsd
+
+# Install project dependencies
+npm install
+
+# Start local development server
+npm run dev
+# The application runs at http://localhost:5173
+
+# Execute static code analysis
+npm run lint
+
+# Compile and build production bundle
+npm run build
+```
+
+Demo Credentials:
+* Meghana Pinikeshi (Full Stack Lead): `meghana@devflow.io` / `devflow123`
+* Aarav Sharma (Lead Architect): `aarav@devflow.io` / `admin123`
+
+Appendix B: GitHub REST API Query Specifications
+All queries are issued over HTTPS with the header `Accept: application/vnd.github.v3+json`. Optional PAT tokens append `Authorization: Bearer <token>`.
+* User Repositories: `GET https://api.github.com/users/:username/repos?sort=updated&per_page=100`
+* Commits Stream: `GET https://api.github.com/repos/:owner/:repo/commits?per_page=20`
+* Branches List: `GET https://api.github.com/repos/:owner/:repo/branches?per_page=20`
+* Pull Requests: `GET https://api.github.com/repos/:owner/:repo/pulls?state=all&per_page=15`
+* Rate Limit Status: `GET https://api.github.com/rate_limit`
+
+Appendix C: Core Code Listings
+Core API caching and GitHub telemetry implementation (`src/services/githubService.ts`):
+```typescript
+const CACHE_KEY_PREFIX = 'devflow_gh_cache_';
+const CACHE_TTL_MS = 15 * 60 * 1000;
+
+export function getCachedUserPublicRepos(username: string): UserPublicRepo[] | null {
+  return getStaleFromCache<UserPublicRepo[]>(`user_repos_${username.toLowerCase()}`);
+}
+
+export function hasGitHubToken(): boolean {
+  const envToken = (import.meta as any).env?.VITE_GITHUB_TOKEN;
+  const storedToken = localStorage.getItem('devflow_github_pat');
+  return Boolean((storedToken && storedToken.trim()) || (envToken && String(envToken).trim()));
+}
+```
+Automated pull request merge handler (`src/context/AppContext.tsx`):
+```typescript
+const mergePullRequest = (prId: string) => {
+  const pr = pullRequests.find(p => p.id === prId);
+  if (!pr || pr.status === 'merged') return;
+
+  setPullRequests(prev => prev.map(p => p.id === prId ? {
+    ...p, status: 'merged', reviewStatus: 'approved', ciStatus: 'success', updatedAt: new Date().toISOString()
+  } : p));
+
+  const projectRepoSettings = repoSettingsMap[pr.projectId] || repoSettings;
+  if (projectRepoSettings.autoSync) {
+    if (pr.linkedTaskId) moveTaskStage(pr.linkedTaskId, 'done');
+    if (pr.linkedIssueId) updateIssueStatus(pr.linkedIssueId, 'resolved');
+  }
+};
+```

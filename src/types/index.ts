@@ -76,6 +76,7 @@ export interface Issue {
 
 export interface ActivityItem {
   id: string;
+  projectId?: string;
   type: 'task_moved' | 'task_created' | 'issue_reported' | 'issue_resolved' | 'pr_linked' | 'project_created' | 'github_push' | 'pr_merged' | 'pr_opened';
   title: string;
   timestamp: string;

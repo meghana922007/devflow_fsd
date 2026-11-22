@@ -99,7 +99,7 @@ export const GitHubHub: React.FC = () => {
                 padding: '3px 10px',
                 borderRadius: 'var(--radius-pill)'
               }}>
-                MODULE 3: LIVE GITHUB SYNC
+                LIVE GITHUB SYNC
               </span>
               <span style={{
                 display: 'inline-flex',
@@ -107,12 +107,19 @@ export const GitHubHub: React.FC = () => {
                 gap: '5px',
                 fontSize: '0.75rem',
                 fontWeight: 700,
-                backgroundColor: '#52ab98',
+                backgroundColor: repoSettings.syncError ? '#b91c1c' : repoSettings.isLiveSync ? '#52ab98' : 'rgba(255, 255, 255, 0.2)',
                 color: '#ffffff',
                 padding: '3px 10px',
                 borderRadius: 'var(--radius-pill)'
               }}>
-                <CheckCircle2 size={12} /> Live API Connected
+                {repoSettings.syncError ? <AlertCircle size={12} /> : <CheckCircle2 size={12} />}
+                {repoSettings.syncError
+                  ? 'Sync Error'
+                  : repoSettings.isLiveSync
+                    ? 'Live API Connected'
+                    : activeProject.gitRepo
+                      ? 'Sync Pending'
+                      : 'Local Workspace'}
               </span>
               {githubRateLimit && (
                 <span style={{
@@ -132,7 +139,7 @@ export const GitHubHub: React.FC = () => {
             </div>
 
             <h2 style={{ fontSize: '1.45rem', fontWeight: 800, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '10px' }}>
-              {activeProject.gitRepo ? activeProject.gitRepo.replace('https://github.com/', '') : 'meghana922007/devflow'}
+              {activeProject.gitRepo ? activeProject.gitRepo.replace('https://github.com/', '') : `${activeProject.name} (No GitHub Repo Linked)`}
               <span style={{
                 fontSize: '0.75rem',
                 fontWeight: 700,
@@ -179,25 +186,27 @@ export const GitHubHub: React.FC = () => {
             </a>
           )}
 
-          <button
-            onClick={handleCopyRepo}
-            title="Copy Repository URL"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '8px 14px',
-              borderRadius: 'var(--radius-pill)',
-              backgroundColor: 'rgba(255, 255, 255, 0.15)',
-              border: '1px solid rgba(255, 255, 255, 0.3)',
-              color: '#ffffff',
-              fontSize: '0.82rem',
-              fontWeight: 600
-            }}
-          >
-            {copiedUrl ? <Check size={14} color="#52ab98" /> : <Copy size={14} />}
-            {copiedUrl ? 'Copied' : 'Clone URL'}
-          </button>
+          {activeProject.gitRepo && (
+            <button
+              onClick={handleCopyRepo}
+              title="Copy Repository URL"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '8px 14px',
+                borderRadius: 'var(--radius-pill)',
+                backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                border: '1px solid rgba(255, 255, 255, 0.3)',
+                color: '#ffffff',
+                fontSize: '0.82rem',
+                fontWeight: 600
+              }}
+            >
+              {copiedUrl ? <Check size={14} color="#52ab98" /> : <Copy size={14} />}
+              {copiedUrl ? 'Copied' : 'Clone URL'}
+            </button>
+          )}
 
           <button
             onClick={handleSync}

@@ -153,8 +153,19 @@ export const WebhookLogView: React.FC = () => {
       </div>
 
       {/* Deliveries Stream */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        {projectEvents.map(event => {
+      {projectEvents.length === 0 ? (
+        <div className="pastel-card" style={{ padding: '48px 24px', textAlign: 'center' }}>
+          <Radio size={36} color="#c8d8e4" style={{ margin: '0 auto 12px auto' }} />
+          <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-main)' }}>
+            No Webhook Deliveries Yet
+          </h3>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: '6px 0 16px 0' }}>
+            Sync a live repository or use "Simulate Incoming Webhook" above to inspect live delivery payloads for {activeProject.name}.
+          </p>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {projectEvents.map(event => {
           const isExpanded = expandedId === event.id;
           return (
             <div
@@ -277,7 +288,8 @@ export const WebhookLogView: React.FC = () => {
             </div>
           );
         })}
-      </div>
+        </div>
+      )}
     </div>
   );
 };

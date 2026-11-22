@@ -18,25 +18,41 @@ export const CommitsStream: React.FC = () => {
     commits,
     branches,
     addCommit,
-    tasks
+    tasks,
+    repoSettings,
+    searchQuery,
+    setSearchQuery
   } = useApp();
 
   const [selectedBranch, setSelectedBranch] = useState<string>('all');
-  const [commitSearch, setCommitSearch] = useState('');
   const [copiedSha, setCopiedSha] = useState<string | null>(null);
 
   // Quick commit form state
   const [showQuickCommit, setShowQuickCommit] = useState(false);
   const [newMsg, setNewMsg] = useState('');
-  const [targetBranch, setTargetBranch] = useState('main');
+  const projectBranches = branches.filter(b => b.projectId === activeProject.id);
+  const projectTasks = tasks.filter(t => t.projectId === activeProject.id);
+  const defaultBranchName = repoSettings.defaultBranch || projectBranches[0]?.name || 'main';
+  const availableBranchNames = projectBranches.length > 0 ? projectBranches.map(b => b.name) : [defaultBranchName];
+  const [targetBranch, setTargetBranch] = useState(defaultBranchName);
   const [linkedTaskId, setLinkedTaskId] = useState('');
+
+  const effectiveSelectedBranch = selectedBranch === 'all' || availableBranchNames.includes(selectedBranch)
+    ? selectedBranch
+    : 'all';
+  const effectiveTargetBranch = availableBranchNames.includes(targetBranch)
+    ? targetBranch
+    : defaultBranchName;
+  const effectiveLinkedTaskId = projectTasks.some(t => t.id === linkedTaskId)
+    ? linkedTaskId
+    : '';
 
   const projectCommits = commits.filter(c => c.projectId === activeProject.id);
 
   const filteredCommits = projectCommits.filter(c => {
-    if (selectedBranch !== 'all' && c.branch !== selectedBranch) return false;
-    if (commitSearch.trim()) {
-      const q = commitSearch.toLowerCase();
+    if (effectiveSelectedBranch !== 'all' && c.branch !== effectiveSelectedBranch) return false;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
       const matchMsg = c.message.toLowerCase().includes(q);
       const matchSha = c.id.toLowerCase().includes(q);
       const matchAuthor = c.authorName.toLowerCase().includes(q) || c.githubUsername.toLowerCase().includes(q);
@@ -57,11 +73,12 @@ export const CommitsStream: React.FC = () => {
 
     addCommit({
       message: newMsg.trim(),
-      branch: targetBranch,
-      linkedTaskId: linkedTaskId || undefined
+      branch: effectiveTargetBranch,
+      linkedTaskId: effectiveLinkedTaskId || undefined
     });
 
     setNewMsg('');
+    setLinkedTaskId('');
     setShowQuickCommit(false);
   };
 
@@ -80,7 +97,7 @@ export const CommitsStream: React.FC = () => {
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)' }}>Branch:</span>
             <select
-              value={selectedBranch}
+              value={effectiveSelectedBranch}
               onChange={(e) => setSelectedBranch(e.target.value)}
               style={{
                 padding: '7px 12px',
@@ -94,7 +111,7 @@ export const CommitsStream: React.FC = () => {
               }}
             >
               <option value="all">All Branches ({projectCommits.length} commits)</option>
-              {branches.filter(b => b.projectId === activeProject.id).map(b => (
+              {projectBranches.map(b => (
                 <option key={b.name} value={b.name}>{b.name} {b.isDefault ? '★' : ''}</option>
               ))}
             </select>
@@ -115,8 +132,8 @@ export const CommitsStream: React.FC = () => {
           <input
             type="text"
             placeholder="Search commits, SHA, author..."
-            value={commitSearch}
-            onChange={(e) => setCommitSearch(e.target.value)}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
             style={{
               width: '100%',
               padding: '8px 12px 8px 34px',
@@ -177,7 +194,7 @@ export const CommitsStream: React.FC = () => {
                 Branch
               </label>
               <select
-                value={targetBranch}
+                value={effectiveTargetBranch}
                 onChange={(e) => setTargetBranch(e.target.value)}
                 style={{
                   width: '100%',
@@ -189,9 +206,13 @@ export const CommitsStream: React.FC = () => {
                   outline: 'none'
                 }}
               >
-                {branches.filter(b => b.projectId === activeProject.id).map(b => (
-                  <option key={b.name} value={b.name}>{b.name}</option>
-                ))}
+                {projectBranches.length > 0 ? (
+                  projectBranches.map(b => (
+                    <option key={b.name} value={b.name}>{b.name}</option>
+                  ))
+                ) : (
+                  <option value={defaultBranchName}>{defaultBranchName}</option>
+                )}
               </select>
             </div>
 
@@ -200,7 +221,7 @@ export const CommitsStream: React.FC = () => {
                 Link Task (Optional)
               </label>
               <select
-                value={linkedTaskId}
+                value={effectiveLinkedTaskId}
                 onChange={(e) => setLinkedTaskId(e.target.value)}
                 style={{
                   width: '100%',
@@ -213,8 +234,8 @@ export const CommitsStream: React.FC = () => {
                 }}
               >
                 <option value="">None</option>
-                {tasks.filter(t => t.projectId === activeProject.id).map(t => (
-                  <option key={t.id} value={t.id}>{t.id}: {t.title.substring(0, 24)}...</option>
+                {projectTasks.map(t => (
+                  <option key={t.id} value={t.id}>{t.id}: {t.title.length > 24 ? `${t.title.substring(0, 24)}...` : t.title}</option>
                 ))}
               </select>
             </div>
@@ -375,28 +396,30 @@ export const CommitsStream: React.FC = () => {
                   <span style={{ color: '#2b6777', fontWeight: 800 }}>-{commit.deletions}</span>
                 </div>
 
-                <a
-                  href={commit.htmlUrl || `https://github.com/meghana922007/devflow/commit/${commit.id}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  title="Open commit on GitHub.com"
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    padding: '4px 10px',
-                    borderRadius: 'var(--radius-pill)',
-                    backgroundColor: '#ffffff',
-                    border: '1px solid #c8d8e4',
-                    color: '#2b6777',
-                    fontSize: '0.72rem',
-                    fontWeight: 700,
-                    textDecoration: 'none',
-                    transition: 'all 0.15s ease'
-                  }}
-                >
-                  <ExternalLink size={11} /> GitHub ↗
-                </a>
+                {(commit.htmlUrl || activeProject.gitRepo) && (
+                  <a
+                    href={commit.htmlUrl || `${activeProject.gitRepo!.replace(/\/$/, '')}/commit/${commit.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="Open commit on GitHub.com"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      padding: '4px 10px',
+                      borderRadius: 'var(--radius-pill)',
+                      backgroundColor: '#ffffff',
+                      border: '1px solid #c8d8e4',
+                      color: '#2b6777',
+                      fontSize: '0.72rem',
+                      fontWeight: 700,
+                      textDecoration: 'none',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    <ExternalLink size={11} /> GitHub ↗
+                  </a>
+                )}
               </div>
             </div>
           ))}

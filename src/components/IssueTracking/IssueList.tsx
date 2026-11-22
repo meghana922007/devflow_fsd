@@ -17,7 +17,8 @@ export const IssueList: React.FC = () => {
     updateIssueStatus,
     deleteIssue,
     setIsIssueModalOpen,
-    setEditingIssue
+    setEditingIssue,
+    setActiveTab
   } = useApp();
 
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
@@ -84,7 +85,7 @@ export const IssueList: React.FC = () => {
             {totalBugs}
           </div>
           <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-            Tracked in Module 2
+            Across all severities
           </div>
         </div>
 
@@ -318,20 +319,25 @@ export const IssueList: React.FC = () => {
                     </div>
 
                     {linkedTask && (
-                      <div style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        backgroundColor: 'var(--pastel-lavender)',
-                        color: 'var(--pastel-lavender-text)',
-                        fontSize: '0.75rem',
-                        fontWeight: 600,
-                        padding: '4px 10px',
-                        borderRadius: 'var(--radius-pill)',
-                        marginBottom: '14px'
-                      }}>
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab('kanban')}
+                        title="Jump to linked task in Board & Tasks"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          backgroundColor: 'var(--pastel-lavender)',
+                          color: 'var(--pastel-lavender-text)',
+                          fontSize: '0.75rem',
+                          fontWeight: 600,
+                          padding: '4px 10px',
+                          borderRadius: 'var(--radius-pill)',
+                          marginBottom: '14px'
+                        }}
+                      >
                         <LinkIcon size={12} /> Linked Task: {linkedTask.id} ({linkedTask.title})
-                      </div>
+                      </button>
                     )}
                   </div>
 
@@ -389,36 +395,84 @@ export const IssueList: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {filteredIssues.map(issue => (
-                <tr key={issue.id} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-                  <td style={{ padding: '14px 16px', fontWeight: 800, color: 'var(--pastel-rose-dark)' }}>{issue.id}</td>
-                  <td style={{ padding: '14px 16px' }}>
-                    <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{issue.title}</div>
-                    <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{issue.environment}</div>
-                  </td>
-                  <td style={{ padding: '14px 16px' }}>{getSeverityBadge(issue.severity)}</td>
-                  <td style={{ padding: '14px 16px' }}>{getStatusBadge(issue.status)}</td>
-                  <td style={{ padding: '14px 16px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <img src={issue.assigneeAvatar} alt="" style={{ width: '24px', height: '24px', borderRadius: '50%' }} />
-                      <span>{issue.assigneeName}</span>
-                    </div>
-                  </td>
-                  <td style={{ padding: '14px 16px' }}>
-                    <select
-                      value={issue.status}
-                      onChange={(e) => updateIssueStatus(issue.id, e.target.value as IssueStatus)}
-                      style={{ padding: '4px 8px', borderRadius: 'var(--radius-pill)', border: '1px solid var(--border-color)', fontSize: '0.75rem' }}
-                    >
-                      <option value="open">Open</option>
-                      <option value="triaged">Triaged</option>
-                      <option value="in_fix">In Fix</option>
-                      <option value="resolved">Resolved</option>
-                      <option value="closed">Closed</option>
-                    </select>
+              {filteredIssues.length === 0 ? (
+                <tr>
+                  <td colSpan={6} style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                    No defects match the current filters.
                   </td>
                 </tr>
-              ))}
+              ) : (
+                filteredIssues.map(issue => {
+                  const linkedTask = tasks.find(t => t.id === issue.linkedTaskId);
+                  return (
+                    <tr key={issue.id} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                      <td style={{ padding: '14px 16px', fontWeight: 800, color: 'var(--pastel-rose-dark)' }}>{issue.id}</td>
+                      <td style={{ padding: '14px 16px' }}>
+                        <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{issue.title}</div>
+                        <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginTop: '2px' }}>
+                          <span>{issue.environment}</span>
+                          {linkedTask && (
+                            <button
+                              type="button"
+                              onClick={() => setActiveTab('kanban')}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                backgroundColor: 'var(--pastel-lavender)',
+                                color: 'var(--pastel-lavender-text)',
+                                fontSize: '0.7rem',
+                                fontWeight: 700,
+                                padding: '2px 8px',
+                                borderRadius: 'var(--radius-pill)'
+                              }}
+                            >
+                              <LinkIcon size={10} /> {linkedTask.id}
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                      <td style={{ padding: '14px 16px' }}>{getSeverityBadge(issue.severity)}</td>
+                      <td style={{ padding: '14px 16px' }}>{getStatusBadge(issue.status)}</td>
+                      <td style={{ padding: '14px 16px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <img src={issue.assigneeAvatar} alt="" style={{ width: '24px', height: '24px', borderRadius: '50%' }} />
+                          <span>{issue.assigneeName}</span>
+                        </div>
+                      </td>
+                      <td style={{ padding: '14px 16px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <select
+                            value={issue.status}
+                            onChange={(e) => updateIssueStatus(issue.id, e.target.value as IssueStatus)}
+                            style={{ padding: '4px 8px', borderRadius: 'var(--radius-pill)', border: '1px solid var(--border-color)', fontSize: '0.75rem' }}
+                          >
+                            <option value="open">Open</option>
+                            <option value="triaged">Triaged</option>
+                            <option value="in_fix">In Fix</option>
+                            <option value="resolved">Resolved</option>
+                            <option value="closed">Closed</option>
+                          </select>
+                          <button
+                            onClick={() => { setEditingIssue(issue); setIsIssueModalOpen(true); }}
+                            title="Edit Bug Report"
+                            style={{ padding: '4px', color: 'var(--text-light)' }}
+                          >
+                            <Edit2 size={14} />
+                          </button>
+                          <button
+                            onClick={() => deleteIssue(issue.id)}
+                            title="Delete Bug Report"
+                            style={{ padding: '4px', color: 'var(--pastel-rose-dark)' }}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>

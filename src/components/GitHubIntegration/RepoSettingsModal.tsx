@@ -9,11 +9,16 @@ import {
   CheckCircle2,
   RefreshCw,
   ExternalLink,
-  KeyRound
+  KeyRound,
+  Unlink
 } from 'lucide-react';
-import { fetchGitHubRepoDetails, checkRateLimit, parseGitHubRepo } from '../../services/githubService';
+import { fetchGitHubRepoDetails, checkRateLimit, parseGitHubRepo, clearGitHubCache, hasGitHubToken } from '../../services/githubService';
 
-export const RepoSettingsModal: React.FC = () => {
+interface RepoSettingsFormProps {
+  onClose: () => void;
+}
+
+const RepoSettingsForm: React.FC<RepoSettingsFormProps> = ({ onClose }) => {
   const {
     activeProject,
     repoSettings,
@@ -21,11 +26,11 @@ export const RepoSettingsModal: React.FC = () => {
     syncRepoWithGitHub,
     switchGitRepo,
     userPublicRepos,
-    isRepoSettingsModalOpen,
-    setIsRepoSettingsModalOpen
+    userReposOwner,
+    fetchUserRepos
   } = useApp();
 
-  const [repoUrl, setRepoUrl] = useState(activeProject.gitRepo || repoSettings.repoUrl || 'https://github.com/meghana922007/devflow');
+  const [repoUrl, setRepoUrl] = useState(activeProject.gitRepo || repoSettings.repoUrl || '');
   const [defaultBranch, setDefaultBranch] = useState(repoSettings.defaultBranch || 'main');
   const [webhookSecret, setWebhookSecret] = useState(repoSettings.webhookSecret || 'whsec_9a7d83f21e847c21b9');
   const [patToken, setPatToken] = useState(() => localStorage.getItem('devflow_github_pat') || '');
@@ -40,8 +45,6 @@ export const RepoSettingsModal: React.FC = () => {
     message: string;
     rateLimit?: string;
   } | null>(null);
-
-  if (!isRepoSettingsModalOpen) return null;
 
   const handleCopyUrl = () => {
     navigator.clipboard.writeText(repoSettings.webhookUrl);
@@ -63,7 +66,7 @@ export const RepoSettingsModal: React.FC = () => {
     setTestResult(null);
 
     try {
-      const info = await fetchGitHubRepoDetails(parsed.owner, parsed.repo, patToken);
+      const info = await fetchGitHubRepoDetails(parsed.owner, parsed.repo, patToken, true);
       const rl = await checkRateLimit(patToken);
       setTestResult({
         success: true,
@@ -73,7 +76,7 @@ export const RepoSettingsModal: React.FC = () => {
     } catch (err: any) {
       setTestResult({
         success: false,
-        message: err.message || 'Failed to connect to GitHub repository.'
+        message: err?.message || 'Failed to connect to GitHub repository.'
       });
     } finally {
       setIsTesting(false);
@@ -82,14 +85,20 @@ export const RepoSettingsModal: React.FC = () => {
 
   const handleSelectQuickRepo = (url: string) => {
     setRepoUrl(url);
-    const parsed = parseGitHubRepo(url);
-    if (parsed) {
-      setTestResult(null);
-    }
+    setTestResult(null);
   };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const trimmedUrl = repoUrl.trim();
+    if (trimmedUrl && !parseGitHubRepo(trimmedUrl)) {
+      setTestResult({
+        success: false,
+        message: 'Invalid GitHub URL. Use https://github.com/owner/repository or clear the field for local mode.'
+      });
+      return;
+    }
 
     // Store PAT if provided
     if (patToken.trim()) {
@@ -98,25 +107,28 @@ export const RepoSettingsModal: React.FC = () => {
       localStorage.removeItem('devflow_github_pat');
     }
 
+    clearGitHubCache();
+
     updateRepoSettings({
-      repoUrl,
-      defaultBranch,
-      webhookSecret,
+      repoUrl: trimmedUrl,
+      defaultBranch: defaultBranch.trim() || 'main',
+      webhookSecret: webhookSecret.trim() || 'whsec_9a7d83f21e847c21b9',
       autoSync,
-      patConfigured: !!patToken.trim()
+      patConfigured: Boolean(patToken.trim() || hasGitHubToken())
     });
 
-    if (repoUrl !== activeProject.gitRepo) {
-      await switchGitRepo(repoUrl);
-    } else {
-      await syncRepoWithGitHub(repoUrl);
-    }
+    await Promise.all([
+      trimmedUrl !== (activeProject.gitRepo || '')
+        ? switchGitRepo(trimmedUrl)
+        : syncRepoWithGitHub(trimmedUrl, true),
+      fetchUserRepos(userReposOwner, true)
+    ]);
 
     setSavedSuccess(true);
     setTimeout(() => {
       setSavedSuccess(false);
-      setIsRepoSettingsModalOpen(false);
-    }, 1200);
+      onClose();
+    }, 1000);
   };
 
   // Repositories for Meghana (from live GitHub API or verified list)
@@ -128,6 +140,8 @@ export const RepoSettingsModal: React.FC = () => {
         { name: 'Agentic-RBAC', url: 'https://github.com/meghana922007/Agentic-RBAC', desc: 'Role-Based Access Control' },
         { name: 'sellersense', url: 'https://github.com/meghana922007/sellersense', desc: 'E-commerce Analytics' }
       ];
+
+  const normalizedRepoUrl = repoUrl.trim().replace(/\/$/, '').toLowerCase();
 
   return (
     <div style={{
@@ -180,13 +194,14 @@ export const RepoSettingsModal: React.FC = () => {
                 GitHub Integration & API Settings
               </h2>
               <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                Connect live GitHub repositories, test REST endpoints, and configure webhook telemetry.
+                Configure live GitHub repository sync & webhook telemetry for {activeProject.name} ({activeProject.key}).
               </p>
             </div>
           </div>
 
           <button
-            onClick={() => setIsRepoSettingsModalOpen(false)}
+            type="button"
+            onClick={onClose}
             style={{
               padding: '6px',
               borderRadius: '50%',
@@ -215,7 +230,7 @@ export const RepoSettingsModal: React.FC = () => {
               fontWeight: 700
             }}>
               <CheckCircle2 size={18} color="#52ab98" />
-              <span>Repository configuration saved! Synchronizing live telemetry with GitHub...</span>
+              <span>Repository configuration saved for {activeProject.key}! Synchronizing workspace...</span>
             </div>
           )}
 
@@ -242,7 +257,7 @@ export const RepoSettingsModal: React.FC = () => {
                   Meghana Pinikeshi (@meghana922007)
                 </div>
                 <div style={{ fontSize: '0.75rem', color: '#2b6777' }}>
-                  Live GitHub Account Connected
+                  GitHub Public Explorer Connected
                 </div>
               </div>
             </div>
@@ -271,11 +286,11 @@ export const RepoSettingsModal: React.FC = () => {
           {/* Quick Repo Selector */}
           <div>
             <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '8px' }}>
-              Select Repository from @meghana922007:
+              Quick Pick from @meghana922007:
             </label>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
               {meghanaRepos.map(r => {
-                const isSelected = repoUrl.toLowerCase().includes(r.name.toLowerCase());
+                const isSelected = normalizedRepoUrl === r.url.replace(/\/$/, '').toLowerCase();
                 return (
                   <button
                     key={r.name}
@@ -307,15 +322,14 @@ export const RepoSettingsModal: React.FC = () => {
           {/* Repository URL Input */}
           <div>
             <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '6px' }}>
-              Target GitHub Repository URL *
+              Target GitHub Repository URL <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>(Optional — leave blank for local mode)</span>
             </label>
             <div style={{ position: 'relative' }}>
               <input
                 type="url"
-                required
                 value={repoUrl}
                 onChange={(e) => setRepoUrl(e.target.value)}
-                placeholder="https://github.com/meghana922007/devflow"
+                placeholder="https://github.com/owner/repository"
                 style={{
                   width: '100%',
                   padding: '9px 12px 9px 36px',
@@ -330,13 +344,13 @@ export const RepoSettingsModal: React.FC = () => {
             </div>
           </div>
 
-          {/* Test Connection Button & Result */}
+          {/* Test Connection / Clear Buttons & Result */}
           <div>
-            <div style={{ display: 'flex', gap: '8px' }}>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
               <button
                 type="button"
                 onClick={handleTestConnection}
-                disabled={isTesting}
+                disabled={isTesting || !repoUrl.trim()}
                 className="btn-secondary"
                 style={{
                   display: 'inline-flex',
@@ -350,6 +364,24 @@ export const RepoSettingsModal: React.FC = () => {
                 <RefreshCw size={13} style={{ animation: isTesting ? 'spin 1s linear infinite' : 'none' }} />
                 {isTesting ? 'Pinging GitHub REST API...' : 'Test Live API Connection'}
               </button>
+
+              {repoUrl.trim() && (
+                <button
+                  type="button"
+                  onClick={() => { setRepoUrl(''); setTestResult(null); }}
+                  className="btn-secondary"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '7px 14px',
+                    fontSize: '0.82rem',
+                    fontWeight: 700
+                  }}
+                >
+                  <Unlink size={13} /> Clear Repo URL
+                </button>
+              )}
             </div>
 
             {testResult && (
@@ -408,7 +440,9 @@ export const RepoSettingsModal: React.FC = () => {
               }}
             />
             <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-              Unauthenticated API is active (60 requests/hr). Providing a PAT increases rate limits to 5,000/hr and allows accessing private repos.
+              {patToken.trim() || hasGitHubToken()
+                ? 'Authenticated mode active (up to 5,000 GitHub API requests/hr + private repo access).'
+                : 'Unauthenticated API is active (60 requests/hr). Providing a PAT increases rate limits to 5,000/hr and enables private repos.'}
             </p>
           </div>
 
@@ -508,7 +542,7 @@ export const RepoSettingsModal: React.FC = () => {
               style={{ accentColor: '#2b6777', width: '16px', height: '16px', cursor: 'pointer' }}
             />
             <label htmlFor="auto-sync" style={{ fontSize: '0.82rem', fontWeight: 700, color: '#1c3d44', cursor: 'pointer' }}>
-              Automatically transition linked tasks to "Done" upon Pull Request merge
+              Automatically transition linked tasks ("Done") & bugs ("Resolved") upon Pull Request merge
             </label>
           </div>
 
@@ -516,7 +550,7 @@ export const RepoSettingsModal: React.FC = () => {
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
             <button
               type="button"
-              onClick={() => setIsRepoSettingsModalOpen(false)}
+              onClick={onClose}
               className="btn-secondary"
             >
               Cancel
@@ -525,11 +559,29 @@ export const RepoSettingsModal: React.FC = () => {
               type="submit"
               className="btn-primary"
             >
-              Save & Synchronize Live Repo
+              {repoUrl.trim() ? 'Save & Synchronize Live Repo' : 'Save Workspace Settings'}
             </button>
           </div>
         </form>
       </div>
     </div>
+  );
+};
+
+export const RepoSettingsModal: React.FC = () => {
+  const {
+    activeProject,
+    repoSettings,
+    isRepoSettingsModalOpen,
+    setIsRepoSettingsModalOpen
+  } = useApp();
+
+  if (!isRepoSettingsModalOpen) return null;
+
+  return (
+    <RepoSettingsForm
+      key={`${activeProject.id}-${activeProject.gitRepo || ''}-${repoSettings.repoUrl}`}
+      onClose={() => setIsRepoSettingsModalOpen(false)}
+    />
   );
 };

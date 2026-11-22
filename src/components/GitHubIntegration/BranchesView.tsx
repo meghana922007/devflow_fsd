@@ -15,10 +15,16 @@ export const BranchesView: React.FC = () => {
   const {
     activeProject,
     branches,
-    setIsNewPRModalOpen
+    setIsNewPRModalOpen,
+    setPreselectedPRSourceBranch
   } = useApp();
 
   const projectBranches = branches.filter(b => b.projectId === activeProject.id);
+
+  const handleOpenPRForBranch = (branchName: string | null) => {
+    setPreselectedPRSourceBranch(branchName);
+    setIsNewPRModalOpen(true);
+  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -33,7 +39,7 @@ export const BranchesView: React.FC = () => {
         </div>
 
         <button
-          onClick={() => setIsNewPRModalOpen(true)}
+          onClick={() => handleOpenPRForBranch(null)}
           className="btn-primary"
           style={{ fontSize: '0.82rem', padding: '8px 16px' }}
         >
@@ -138,31 +144,33 @@ export const BranchesView: React.FC = () => {
                 </div>
               )}
 
-              <a
-                href={`${activeProject.gitRepo || 'https://github.com/meghana922007/devflow'}/tree/${branch.name}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                title="View branch on GitHub.com"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  padding: '6px 12px',
-                  borderRadius: 'var(--radius-pill)',
-                  backgroundColor: '#ffffff',
-                  border: '1px solid #c8d8e4',
-                  color: '#2b6777',
-                  fontSize: '0.78rem',
-                  fontWeight: 700,
-                  textDecoration: 'none'
-                }}
-              >
-                <ExternalLink size={12} /> GitHub ↗
-              </a>
+              {activeProject.gitRepo && (
+                <a
+                  href={`${activeProject.gitRepo.replace(/\/$/, '')}/tree/${branch.name}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title="View branch on GitHub.com"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '6px 12px',
+                    borderRadius: 'var(--radius-pill)',
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #c8d8e4',
+                    color: '#2b6777',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    textDecoration: 'none'
+                  }}
+                >
+                  <ExternalLink size={12} /> GitHub ↗
+                </a>
+              )}
 
               {!branch.isDefault && (
                 <button
-                  onClick={() => setIsNewPRModalOpen(true)}
+                  onClick={() => handleOpenPRForBranch(branch.name)}
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',

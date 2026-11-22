@@ -7,30 +7,49 @@ import {
   Bug
 } from 'lucide-react';
 
-export const NewPullRequestModal: React.FC = () => {
+interface NewPullRequestFormProps {
+  onClose: () => void;
+}
+
+const NewPullRequestForm: React.FC<NewPullRequestFormProps> = ({ onClose }) => {
   const {
     activeProject,
     branches,
     tasks,
     issues,
-    createPullRequest,
-    isNewPRModalOpen,
-    setIsNewPRModalOpen
+    repoSettings,
+    preselectedPRSourceBranch,
+    createPullRequest
   } = useApp();
-
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [sourceBranch, setSourceBranch] = useState(branches.find(b => !b.isDefault)?.name || 'feature/new-feature');
-  const [targetBranch, setTargetBranch] = useState('main');
-  const [linkedTaskId, setLinkedTaskId] = useState('');
-  const [linkedIssueId, setLinkedIssueId] = useState('');
-  const [isDraft, setIsDraft] = useState(false);
-
-  if (!isNewPRModalOpen) return null;
 
   const projectBranches = branches.filter(b => b.projectId === activeProject.id);
   const projectTasks = tasks.filter(t => t.projectId === activeProject.id);
   const projectIssues = issues.filter(i => i.projectId === activeProject.id);
+
+  const defaultTargetBranch =
+    repoSettings.defaultBranch ||
+    projectBranches.find(b => b.isDefault)?.name ||
+    'main';
+
+  const targetBranchOptions = Array.from(
+    new Set([defaultTargetBranch, ...projectBranches.map(b => b.name)].filter(Boolean))
+  );
+  if (targetBranchOptions.length === 0) {
+    targetBranchOptions.push('main');
+  }
+
+  const initialSourceBranch =
+    preselectedPRSourceBranch ||
+    projectBranches.find(b => !b.isDefault && b.name !== defaultTargetBranch)?.name ||
+    'feature/new-feature';
+
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [sourceBranch, setSourceBranch] = useState(initialSourceBranch);
+  const [targetBranch, setTargetBranch] = useState(defaultTargetBranch);
+  const [linkedTaskId, setLinkedTaskId] = useState('');
+  const [linkedIssueId, setLinkedIssueId] = useState('');
+  const [isDraft, setIsDraft] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,12 +65,7 @@ export const NewPullRequestModal: React.FC = () => {
       isDraft
     });
 
-    setTitle('');
-    setDescription('');
-    setLinkedTaskId('');
-    setLinkedIssueId('');
-    setIsDraft(false);
-    setIsNewPRModalOpen(false);
+    onClose();
   };
 
   return (
@@ -105,13 +119,14 @@ export const NewPullRequestModal: React.FC = () => {
                 Create New Pull Request
               </h2>
               <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                Propose changes, link tasks, and initiate automated CI/CD checks.
+                Propose changes in {activeProject.name}, link tasks, and initiate automated CI/CD checks.
               </p>
             </div>
           </div>
 
           <button
-            onClick={() => setIsNewPRModalOpen(false)}
+            type="button"
+            onClick={onClose}
             style={{
               padding: '6px',
               borderRadius: '50%',
@@ -156,8 +171,11 @@ export const NewPullRequestModal: React.FC = () => {
                   color: '#2b6777'
                 }}
               >
-                <option value="main">main (default)</option>
-                <option value="staging">staging</option>
+                {targetBranchOptions.map(branchName => (
+                  <option key={branchName} value={branchName}>
+                    {branchName}{branchName === defaultTargetBranch ? ' (default)' : ''}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -189,9 +207,11 @@ export const NewPullRequestModal: React.FC = () => {
                 }}
               />
               <datalist id="branch-list">
-                {projectBranches.filter(b => !b.isDefault).map(b => (
-                  <option key={b.name} value={b.name} />
-                ))}
+                {projectBranches
+                  .filter(b => b.name !== targetBranch)
+                  .map(b => (
+                    <option key={b.name} value={b.name} />
+                  ))}
               </datalist>
             </div>
           </div>
@@ -249,7 +269,7 @@ export const NewPullRequestModal: React.FC = () => {
             <div>
               <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '6px' }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <Tag size={13} color="#2b6777" /> Link Module 1 Task
+                  <Tag size={13} color="#2b6777" /> Link Task
                 </span>
               </label>
               <select
@@ -268,7 +288,7 @@ export const NewPullRequestModal: React.FC = () => {
                 <option value="">No task linked</option>
                 {projectTasks.map(t => (
                   <option key={t.id} value={t.id}>
-                    {t.id}: {t.title.substring(0, 26)}... ({t.stage})
+                    {t.id}: {t.title.length > 26 ? `${t.title.substring(0, 26)}...` : t.title} ({t.stage})
                   </option>
                 ))}
               </select>
@@ -280,7 +300,7 @@ export const NewPullRequestModal: React.FC = () => {
             <div>
               <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '6px' }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <Bug size={13} color="#52ab98" /> Fixes Module 2 Bug
+                  <Bug size={13} color="#52ab98" /> Fixes Bug
                 </span>
               </label>
               <select
@@ -299,12 +319,12 @@ export const NewPullRequestModal: React.FC = () => {
                 <option value="">No bug linked</option>
                 {projectIssues.map(i => (
                   <option key={i.id} value={i.id}>
-                    {i.id}: {i.title.substring(0, 26)}... ({i.severity})
+                    {i.id}: {i.title.length > 26 ? `${i.title.substring(0, 26)}...` : i.title} ({i.severity})
                   </option>
                 ))}
               </select>
               <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '3px', display: 'block' }}>
-                Auto-links defect ticket to this PR.
+                Merging will auto-resolve linked bug.
               </span>
             </div>
           </div>
@@ -335,7 +355,7 @@ export const NewPullRequestModal: React.FC = () => {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '12px', marginTop: '10px' }}>
             <button
               type="button"
-              onClick={() => setIsNewPRModalOpen(false)}
+              onClick={onClose}
               className="btn-secondary"
             >
               Cancel
@@ -350,5 +370,29 @@ export const NewPullRequestModal: React.FC = () => {
         </form>
       </div>
     </div>
+  );
+};
+
+export const NewPullRequestModal: React.FC = () => {
+  const {
+    activeProject,
+    preselectedPRSourceBranch,
+    setPreselectedPRSourceBranch,
+    isNewPRModalOpen,
+    setIsNewPRModalOpen
+  } = useApp();
+
+  if (!isNewPRModalOpen) return null;
+
+  const handleClose = () => {
+    setPreselectedPRSourceBranch(null);
+    setIsNewPRModalOpen(false);
+  };
+
+  return (
+    <NewPullRequestForm
+      key={`${activeProject.id}-${preselectedPRSourceBranch || 'default'}`}
+      onClose={handleClose}
+    />
   );
 };

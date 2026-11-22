@@ -27,8 +27,25 @@ export const TaskTableView: React.FC = () => {
     setEditingTask,
     setIsTaskModalOpen,
     toggleSubTask,
-    commits
+    commits,
+    pullRequests,
+    openPRDiff,
+    setActiveTab
   } = useApp();
+
+  const handleOpenLinkedPR = (task: Task) => {
+    const prMatch = task.githubPR?.match(/#(\d+)/);
+    const prNum = prMatch ? Number(prMatch[1]) : null;
+    const matchedPR = prNum
+      ? pullRequests.find(p => p.projectId === task.projectId && p.number === prNum)
+      : pullRequests.find(p => p.linkedTaskId === task.id);
+
+    if (matchedPR) {
+      openPRDiff(matchedPR);
+    } else {
+      setActiveTab('github');
+    }
+  };
 
   const [stageFilter, setStageFilter] = useState<TaskStage | 'all'>('all');
   const [expandedTaskIds, setExpandedTaskIds] = useState<Record<string, boolean>>({});
@@ -390,20 +407,25 @@ export const TaskTableView: React.FC = () => {
                               ))}
 
                               {task.githubPR && (
-                                <span style={{
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: '3px',
-                                  fontSize: '0.68rem',
-                                  fontWeight: 700,
-                                  backgroundColor: '#e2eff2',
-                                  color: '#2b6777',
-                                  padding: '1px 6px',
-                                  borderRadius: '4px',
-                                  border: '1px solid #c8d8e4'
-                                }}>
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenLinkedPR(task)}
+                                  title="Open linked Pull Request"
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '3px',
+                                    fontSize: '0.68rem',
+                                    fontWeight: 700,
+                                    backgroundColor: '#e2eff2',
+                                    color: '#2b6777',
+                                    padding: '1px 6px',
+                                    borderRadius: '4px',
+                                    border: '1px solid #c8d8e4'
+                                  }}
+                                >
                                   <GitPullRequest size={10} /> {task.githubPR}
-                                </span>
+                                </button>
                               )}
 
                               {taskCommits.length > 0 && (

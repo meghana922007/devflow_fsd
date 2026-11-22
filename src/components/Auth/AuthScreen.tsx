@@ -103,29 +103,29 @@ export const AuthScreen: React.FC = () => {
               letterSpacing: '0.06em',
               marginBottom: '20px'
             }}>
-              <Sparkles size={15} /> DEVFLOW WORKSPACE AUTHENTICATION
+              <Sparkles size={15} /> DEVFLOW
             </div>
 
             <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '2.1rem', fontWeight: 800, lineHeight: 1.2, marginBottom: '16px' }}>
-              Unified Developer Intelligence Platform
+              One Workspace for Code, Tasks &amp; Delivery
             </h1>
 
             <p style={{ fontSize: '0.92rem', opacity: 0.92, lineHeight: 1.55, marginBottom: '28px' }}>
-              Eliminate context switching. Connect tasks, bug reports, GitHub PRs, commits, and webhook automation into one cohesive workspace.
+              Bring project planning, issue tracking, and GitHub collaboration into one unified web workspace so your team can ship faster without constant tab switching.
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', fontSize: '0.85rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <Check size={16} color="#52ab98" /> <span>Module 1: 4-Column Grid Kanban with 3D Physics</span>
+                <Check size={16} color="#52ab98" /> <span>Plan sprints with interactive Kanban boards and task lists</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <Check size={16} color="#52ab98" /> <span>Module 2: Defect Lifecycle & Telemetry Tracker</span>
+                <Check size={16} color="#52ab98" /> <span>Track and triage bugs from report through resolution</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <Check size={16} color="#52ab98" /> <span>Module 3: GitHub PRs, Code Diffs & Webhooks</span>
+                <Check size={16} color="#52ab98" /> <span>Browse GitHub repositories, pull requests, diffs, and commits</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <Check size={16} color="#52ab98" /> <span>Multi-Project Hub & Engineer Roster Management</span>
+                <Check size={16} color="#52ab98" /> <span>Manage multiple projects and engineering team members</span>
               </div>
             </div>
           </div>
@@ -139,7 +139,7 @@ export const AuthScreen: React.FC = () => {
             border: '1px solid rgba(255, 255, 255, 0.25)'
           }}>
             <div style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#c8d8e4', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <KeyRound size={13} /> Demo Test Accounts (Click to Auto-Fill):
+              <KeyRound size={13} /> Quick Sign-In Accounts:
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -164,7 +164,7 @@ export const AuthScreen: React.FC = () => {
 
               <button
                 type="button"
-                onClick={() => fillQuickTest('admin@devflow.io', 'admin123')}
+                onClick={() => fillQuickTest('aarav@devflow.io', 'admin123')}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -177,7 +177,7 @@ export const AuthScreen: React.FC = () => {
                   textAlign: 'left'
                 }}
               >
-                <span><strong>Admin</strong> (Lead Architect)</span>
+                <span><strong>Aarav</strong> (Lead Architect)</span>
                 <code style={{ fontSize: '0.72rem', opacity: 0.9 }}>admin123</code>
               </button>
             </div>

@@ -5,14 +5,18 @@ import {
   FileCode,
   GitPullRequest,
   GitMerge,
-  Tag
+  Tag,
+  RefreshCw,
+  AlertCircle
 } from 'lucide-react';
 
 export const DiffModal: React.FC = () => {
   const {
     selectedPRForDiff,
     setSelectedPRForDiff,
-    mergePullRequest
+    mergePullRequest,
+    isLoadingDiff,
+    diffError
   } = useApp();
 
   if (!selectedPRForDiff) return null;
@@ -161,10 +165,21 @@ export const DiffModal: React.FC = () => {
 
         {/* Code Diffs Body */}
         <div style={{ padding: '20px 24px', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {pr.diffFiles.length === 0 ? (
+          {isLoadingDiff ? (
+            <div style={{ padding: '48px 24px', textAlign: 'center', color: 'var(--text-muted)' }}>
+              <RefreshCw size={28} color="#2b6777" style={{ margin: '0 auto 12px auto', animation: 'spin 1s linear infinite' }} />
+              <p style={{ fontWeight: 700, color: 'var(--text-main)' }}>Loading live code diff from GitHub...</p>
+              <p style={{ fontSize: '0.8rem' }}>Fetching changed files and patches for PR #{pr.number}</p>
+            </div>
+          ) : diffError ? (
+            <div style={{ padding: '24px', backgroundColor: '#fcedea', border: '1px solid #e57373', borderRadius: 'var(--radius-md)', color: '#8a2b2b', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <AlertCircle size={18} />
+              <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{diffError}</span>
+            </div>
+          ) : pr.diffFiles.length === 0 ? (
             <div style={{ padding: '32px', textAlign: 'center', color: 'var(--text-muted)' }}>
               <GitPullRequest size={32} color="#c8d8e4" style={{ margin: '0 auto 8px auto' }} />
-              <p style={{ fontWeight: 700 }}>No diff files available for this historical pull request.</p>
+              <p style={{ fontWeight: 700 }}>No diff files available for this pull request.</p>
               <p style={{ fontSize: '0.8rem' }}>Summary: {pr.additions} additions, {pr.deletions} deletions.</p>
             </div>
           ) : (

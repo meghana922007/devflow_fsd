@@ -7,9 +7,9 @@ import {
   LogOut,
   ChevronDown,
   GitPullRequest,
-  UserPlus
+  UserPlus,
+  RotateCcw
 } from 'lucide-react';
-import { mockUsers } from '../data/mockData';
 
 export const Header: React.FC = () => {
   const {
@@ -29,7 +29,8 @@ export const Header: React.FC = () => {
     currentUser,
     logout,
     switchUser,
-    users
+    users,
+    resetDemoData
   } = useApp();
 
   const [showDropdown, setShowDropdown] = useState(false);
@@ -216,7 +217,7 @@ export const Header: React.FC = () => {
             }}
           >
             <img
-              src={currentUser?.avatar || mockUsers[1].avatar}
+              src={currentUser?.avatar || users[1]?.avatar || users[0]?.avatar || ''}
               alt=""
               style={{ width: '26px', height: '26px', borderRadius: '50%' }}
             />
@@ -271,7 +272,23 @@ export const Header: React.FC = () => {
                 </button>
               ))}
 
-              <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '8px', marginTop: '4px' }}>
+              <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '8px', marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <button
+                  onClick={() => { resetDemoData(); setShowDropdown(false); }}
+                  style={{
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '6px 8px',
+                    color: '#2b6777',
+                    fontWeight: 700,
+                    fontSize: '0.8rem',
+                    borderRadius: 'var(--radius-sm)'
+                  }}
+                >
+                  <RotateCcw size={14} /> Reset Demo Data
+                </button>
                 <button
                   onClick={() => { logout(); setShowDropdown(false); }}
                   style={{

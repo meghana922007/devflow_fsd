@@ -84,7 +84,7 @@ export const initialTasks: Task[] = [
     assigneeName: 'Meghana',
     assigneeAvatar: mockUsers[1].avatar,
     dueDate: '2026-10-12',
-    tags: ['Frontend', 'UI/UX', 'Module 1'],
+    tags: ['Frontend', 'UI/UX', 'Kanban'],
     githubBranch: 'feature/kanban-pastel-ui',
     githubPR: '#42 - Add Kanban Board Stage Controller',
     subtasks: [
@@ -100,14 +100,14 @@ export const initialTasks: Task[] = [
     id: 'TSK-102',
     projectId: 'p1',
     title: 'Build Issue Severity Filter and Status Transition Pipeline',
-    description: 'Create Module 2 bug tracking dashboard with severity badges (Minor, Major, Critical, Blocker).',
+    description: 'Create bug tracking dashboard with severity badges (Minor, Major, Critical, Blocker).',
     stage: 'review',
     priority: 'high',
     assigneeId: 'u1',
     assigneeName: 'Aarav Sharma',
     assigneeAvatar: mockUsers[0].avatar,
     dueDate: '2026-10-14',
-    tags: ['Module 2', 'Defects', 'React'],
+    tags: ['Issues', 'Defects', 'React'],
     githubBranch: 'feature/issue-severity-pipeline',
     githubPR: '#45 - Issue Status State Machine',
     subtasks: [
@@ -150,7 +150,7 @@ export const initialTasks: Task[] = [
     assigneeName: 'Rohan Mehta',
     assigneeAvatar: mockUsers[2].avatar,
     dueDate: '2026-10-18',
-    tags: ['Backend', 'Module 3', 'Webhooks'],
+    tags: ['Backend', 'GitHub', 'Webhooks'],
     githubBranch: 'feature/github-webhook-queue',
     subtasks: [
       { id: 'st40', title: 'Add HMAC signature validation helper', completed: false },
@@ -186,7 +186,7 @@ export const initialIssues: Issue[] = [
     title: 'Kanban card animation jitters during rapid stage transitions',
     description: 'When moving a task rapidly from To Do to In Progress, the card shadow flashes abruptly before stabilizing.',
     reproductionSteps: [
-      'Navigate to Module 1 Kanban Board',
+      'Navigate to Kanban Board',
       'Click "Move to In Progress" on TSK-101 rapidly twice',
       'Observe card transform scale effect'
     ],
@@ -253,6 +253,7 @@ export const initialIssues: Issue[] = [
 export const mockActivities: ActivityItem[] = [
   {
     id: 'act-1',
+    projectId: 'p1',
     type: 'task_moved',
     title: 'moved task "Implement Interactive Kanban Board" to In Progress',
     timestamp: '10 mins ago',
@@ -261,6 +262,7 @@ export const mockActivities: ActivityItem[] = [
   },
   {
     id: 'act-2',
+    projectId: 'p1',
     type: 'issue_reported',
     title: 'reported bug "Uncaught TypeError when creating bug report without linked task"',
     timestamp: '2 hours ago',
@@ -270,6 +272,7 @@ export const mockActivities: ActivityItem[] = [
   },
   {
     id: 'act-3',
+    projectId: 'p1',
     type: 'task_created',
     title: 'created new task "GitHub Actions Webhook Endpoint Architecture"',
     timestamp: '3 hours ago',
@@ -284,7 +287,7 @@ export const mockPullRequests: PullRequest[] = [
     projectId: 'p1',
     number: 42,
     title: 'feat(kanban): Add 3D perspective physics & HTML5 drop zones',
-    description: 'Implements Module 1 interactive drag-and-drop mechanics, mouse perspective tilt, subtask checklist updates, and responsive 4-column grid layout.',
+    description: 'Implements interactive drag-and-drop mechanics, mouse perspective tilt, subtask checklist updates, and responsive 4-column grid layout.',
     authorId: 'u2',
     authorName: 'Meghana',
     authorAvatar: mockUsers[1].avatar,
@@ -353,7 +356,7 @@ export const mockPullRequests: PullRequest[] = [
     additions: 42,
     deletions: 11,
     changedFilesCount: 2,
-    linkedIssueId: 'ISS-201',
+    linkedIssueId: 'BUG-202',
     linkedTaskId: 'TSK-102',
     mergeable: true,
     createdAt: '2026-10-08T14:20:00Z',
@@ -705,7 +708,7 @@ export const defaultRepoSettings: RepoSettings = {
   defaultBranch: 'main',
   webhookUrl: 'https://api.devflow.io/v1/webhooks/github',
   webhookSecret: 'whsec_9a7d83f21e847c21b9',
-  patConfigured: true,
+  patConfigured: false,
   autoSync: true,
   lastSyncedAt: 'Live Synced',
   owner: 'meghana922007',

@@ -1,50 +1,26 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import type { TaskStage, Priority, SubTask } from '../../types';
-import { mockUsers } from '../../data/mockData';
 import { X, Plus, Trash2, Sparkles } from 'lucide-react';
 
-export const TaskModal: React.FC = () => {
-  const { isTaskModalOpen, setIsTaskModalOpen, editingTask, addTask, updateTask, activeProject } = useApp();
+const TaskModalForm: React.FC<{ onClose: () => void }> = ({ onClose }) => {
+  const { editingTask, addTask, updateTask, activeProject, users, currentUser } = useApp();
 
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [stage, setStage] = useState<TaskStage>('todo');
-  const [priority, setPriority] = useState<Priority>('medium');
-  const [assigneeId, setAssigneeId] = useState(mockUsers[0].id);
-  const [dueDate, setDueDate] = useState('2026-10-15');
-  const [tags, setTags] = useState('Frontend, UI');
-  const [githubPR, setGithubPR] = useState('');
-  const [subtasks, setSubtasks] = useState<SubTask[]>([]);
+  const defaultAssigneeId = currentUser?.id || users[0]?.id || 'u1';
+  const [title, setTitle] = useState(editingTask?.title ?? '');
+  const [description, setDescription] = useState(editingTask?.description ?? '');
+  const [stage, setStage] = useState<TaskStage>(editingTask?.stage ?? 'todo');
+  const [priority, setPriority] = useState<Priority>(editingTask?.priority ?? 'medium');
+  const [assigneeId, setAssigneeId] = useState(editingTask?.assigneeId ?? defaultAssigneeId);
+  const [dueDate, setDueDate] = useState(editingTask?.dueDate ?? '2026-10-15');
+  const [tags, setTags] = useState(editingTask ? editingTask.tags.join(', ') : 'Frontend, Core');
+  const [githubPR, setGithubPR] = useState(editingTask?.githubPR ?? '');
+  const [subtasks, setSubtasks] = useState<SubTask[]>(
+    editingTask
+      ? editingTask.subtasks || []
+      : [{ id: 'st-new-1', title: 'Write unit tests', completed: false }]
+  );
   const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
-
-  useEffect(() => {
-    if (editingTask) {
-      setTitle(editingTask.title);
-      setDescription(editingTask.description);
-      setStage(editingTask.stage);
-      setPriority(editingTask.priority);
-      setAssigneeId(editingTask.assigneeId);
-      setDueDate(editingTask.dueDate);
-      setTags(editingTask.tags.join(', '));
-      setGithubPR(editingTask.githubPR || '');
-      setSubtasks(editingTask.subtasks || []);
-    } else {
-      setTitle('');
-      setDescription('');
-      setStage('todo');
-      setPriority('medium');
-      setAssigneeId(mockUsers[0].id);
-      setDueDate('2026-10-15');
-      setTags('Frontend, Core');
-      setGithubPR('');
-      setSubtasks([
-        { id: 'st-new-1', title: 'Write unit tests', completed: false }
-      ]);
-    }
-  }, [editingTask, isTaskModalOpen]);
-
-  if (!isTaskModalOpen) return null;
 
   const handleAddSubtask = () => {
     if (!newSubtaskTitle.trim()) return;
@@ -60,7 +36,7 @@ export const TaskModal: React.FC = () => {
     e.preventDefault();
     if (!title.trim()) return;
 
-    const assignee = mockUsers.find(u => u.id === assigneeId) || mockUsers[0];
+    const assignee = users.find(u => u.id === assigneeId) || users[0];
     const parsedTags = tags.split(',').map(t => t.trim()).filter(Boolean);
 
     if (editingTask) {
@@ -94,7 +70,7 @@ export const TaskModal: React.FC = () => {
       });
     }
 
-    setIsTaskModalOpen(false);
+    onClose();
   };
 
   return (
@@ -133,11 +109,11 @@ export const TaskModal: React.FC = () => {
               <Sparkles size={16} />
             </div>
             <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main)' }}>
-              {editingTask ? `Edit Task (${editingTask.id})` : 'Create New Module 1 Task'}
+              {editingTask ? `Edit Task (${editingTask.id})` : 'Create New Task'}
             </h3>
           </div>
 
-          <button onClick={() => setIsTaskModalOpen(false)} style={{ color: 'var(--text-muted)' }}>
+          <button type="button" onClick={onClose} style={{ color: 'var(--text-muted)' }}>
             <X size={20} />
           </button>
         </div>
@@ -244,7 +220,7 @@ export const TaskModal: React.FC = () => {
                   fontSize: '0.85rem'
                 }}
               >
-                {mockUsers.map(u => (
+                {users.map(u => (
                   <option key={u.id} value={u.id}>{u.name} ({u.role})</option>
                 ))}
               </select>
@@ -313,7 +289,7 @@ export const TaskModal: React.FC = () => {
             <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '6px' }}>
               SUBTASKS CHECKLIST ({subtasks.length})
             </label>
-            
+
             <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
               <input
                 type="text"
@@ -362,7 +338,7 @@ export const TaskModal: React.FC = () => {
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '12px', paddingTop: '16px', borderTop: '1px solid var(--border-subtle)' }}>
             <button
               type="button"
-              onClick={() => setIsTaskModalOpen(false)}
+              onClick={onClose}
               className="btn-secondary"
             >
               Cancel
@@ -377,5 +353,18 @@ export const TaskModal: React.FC = () => {
         </form>
       </div>
     </div>
+  );
+};
+
+export const TaskModal: React.FC = () => {
+  const { isTaskModalOpen, setIsTaskModalOpen, editingTask, activeProject } = useApp();
+
+  if (!isTaskModalOpen) return null;
+
+  return (
+    <TaskModalForm
+      key={editingTask?.id || `new-${activeProject.id}`}
+      onClose={() => setIsTaskModalOpen(false)}
+    />
   );
 };

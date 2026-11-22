@@ -8,7 +8,21 @@ interface TaskCardProps {
 }
 
 export const TaskCard: React.FC<TaskCardProps> = ({ task }) => {
-  const { moveTaskStage, deleteTask, setEditingTask, setIsTaskModalOpen, toggleSubTask, commits } = useApp();
+  const { moveTaskStage, deleteTask, setEditingTask, setIsTaskModalOpen, toggleSubTask, commits, pullRequests, openPRDiff, setActiveTab } = useApp();
+
+  const handleOpenLinkedPR = () => {
+    const prMatch = task.githubPR?.match(/#(\d+)/);
+    const prNum = prMatch ? Number(prMatch[1]) : null;
+    const matchedPR = prNum
+      ? pullRequests.find(p => p.projectId === task.projectId && p.number === prNum)
+      : pullRequests.find(p => p.linkedTaskId === task.id);
+
+    if (matchedPR) {
+      openPRDiff(matchedPR);
+    } else {
+      setActiveTab('github');
+    }
+  };
 
   const [isDragging, setIsDragging] = useState(false);
   const [tiltStyle, setTiltStyle] = useState({});
@@ -214,23 +228,30 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task }) => {
       )}
 
       {task.githubPR && (
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '6px',
-          backgroundColor: 'var(--pastel-sky)',
-          color: 'var(--pastel-sky-text)',
-          fontSize: '0.75rem',
-          fontWeight: 600,
-          padding: '4px 10px',
-          borderRadius: 'var(--radius-sm)',
-          marginBottom: '12px'
-        }}>
+        <button
+          type="button"
+          onClick={handleOpenLinkedPR}
+          title="Open linked Pull Request"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            width: '100%',
+            backgroundColor: 'var(--pastel-sky)',
+            color: 'var(--pastel-sky-text)',
+            fontSize: '0.75rem',
+            fontWeight: 600,
+            padding: '4px 10px',
+            borderRadius: 'var(--radius-sm)',
+            marginBottom: '12px',
+            textAlign: 'left'
+          }}
+        >
           <GitPullRequest size={13} />
           <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {task.githubPR}
           </span>
-        </div>
+        </button>
       )}
 
       {/* Linked Commits Telemetry */}

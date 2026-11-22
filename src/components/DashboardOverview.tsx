@@ -1,13 +1,14 @@
 import React from 'react';
 import { useApp } from '../context/AppContext';
-import { Kanban, Bug, CheckCircle2, ArrowUpRight, Activity, Users } from 'lucide-react';
-import { mockUsers } from '../data/mockData';
+import { Kanban, Bug, CheckCircle2, ArrowUpRight, Activity, Users, FolderGit2 } from 'lucide-react';
 
 export const DashboardOverview: React.FC = () => {
-  const { tasks, issues, activities, activeProject, setActiveTab } = useApp();
+  const { tasks, issues, pullRequests, users, activities, activeProject, setActiveTab } = useApp();
 
   const projectTasks = tasks.filter(t => t.projectId === activeProject.id);
   const projectIssues = issues.filter(i => i.projectId === activeProject.id);
+  const projectPRs = pullRequests.filter(pr => pr.projectId === activeProject.id);
+  const projectActivities = activities.filter(act => !act.projectId || act.projectId === activeProject.id);
 
   const todoCount = projectTasks.filter(t => t.stage === 'todo').length;
   const inProgressCount = projectTasks.filter(t => t.stage === 'in_progress').length;
@@ -41,11 +42,11 @@ export const DashboardOverview: React.FC = () => {
             Welcome back to {activeProject.name}
           </h2>
           <p style={{ fontSize: '0.9rem', opacity: 0.9 }}>
-            Modules 1 & 2 operational. {inProgressCount} tasks currently in progress, {openBugs.length} open bugs tracked.
+            Workspace active. {inProgressCount} tasks in progress, {openBugs.length} open bugs, {projectPRs.filter(p => p.status === 'open').length} open PRs.
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '12px' }}>
+        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
           <button
             onClick={() => setActiveTab('kanban')}
             style={{
@@ -80,6 +81,23 @@ export const DashboardOverview: React.FC = () => {
           >
             <Bug size={16} /> Bug Tracker <ArrowUpRight size={14} />
           </button>
+          <button
+            onClick={() => setActiveTab('github')}
+            style={{
+              backgroundColor: 'rgba(255,255,255,0.2)',
+              color: 'white',
+              border: '1px solid rgba(255,255,255,0.4)',
+              padding: '10px 18px',
+              borderRadius: 'var(--radius-pill)',
+              fontWeight: 700,
+              fontSize: '0.88rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+          >
+            <FolderGit2 size={16} /> GitHub Sync <ArrowUpRight size={14} />
+          </button>
         </div>
       </div>
 
@@ -88,7 +106,7 @@ export const DashboardOverview: React.FC = () => {
         <div className="pastel-card" style={{ padding: '20px', backgroundColor: '#F0F7FF', border: '1px solid var(--pastel-sky)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
             <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--pastel-sky-text)', textTransform: 'uppercase' }}>
-              MODULE 1: TASKS
+              SPRINT TASKS
             </span>
             <Kanban size={18} color="var(--pastel-sky-text)" />
           </div>
@@ -103,7 +121,7 @@ export const DashboardOverview: React.FC = () => {
         <div className="pastel-card" style={{ padding: '20px', backgroundColor: '#FFF0F3', border: '1px solid var(--pastel-coral)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
             <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--pastel-coral-dark)', textTransform: 'uppercase' }}>
-              MODULE 2: BUGS
+              OPEN BUGS
             </span>
             <Bug size={18} color="var(--pastel-coral-dark)" />
           </div>
@@ -138,10 +156,10 @@ export const DashboardOverview: React.FC = () => {
             <Users size={18} color="var(--pastel-lavender-dark)" />
           </div>
           <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-main)' }}>
-            {mockUsers.length} Devs
+            {activeProject.teamMembers.length} / {users.length} Devs
           </div>
           <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-            Assigned to tasks & bugs
+            Assigned to this workspace
           </div>
         </div>
       </div>
@@ -154,7 +172,7 @@ export const DashboardOverview: React.FC = () => {
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Kanban size={18} color="var(--pastel-lavender-dark)" />
                 <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-main)' }}>
-                  Module 1: Kanban Board State Distribution
+                  Kanban Board State Distribution
                 </h3>
               </div>
               <button onClick={() => setActiveTab('kanban')} style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--pastel-lavender-dark)' }}>
@@ -187,7 +205,7 @@ export const DashboardOverview: React.FC = () => {
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Bug size={18} color="var(--pastel-rose-dark)" />
                 <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-main)' }}>
-                  Module 2: Defect Severity Breakdown
+                  Defect Severity Breakdown
                 </h3>
               </div>
               <button onClick={() => setActiveTab('issues')} style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--pastel-rose-dark)' }}>
@@ -231,28 +249,34 @@ export const DashboardOverview: React.FC = () => {
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', flex: 1 }}>
-            {activities.map(act => (
-              <div key={act.id} style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-                <img
-                  src={act.avatar}
-                  alt={act.user}
-                  style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover' }}
-                />
-                <div style={{ fontSize: '0.84rem' }}>
-                  <div style={{ color: 'var(--text-main)' }}>
-                    <strong style={{ color: 'var(--text-main)' }}>{act.user}</strong> {act.title}
-                  </div>
-                  {act.details && (
-                    <span style={{ fontSize: '0.75rem', color: 'var(--pastel-coral-dark)', fontWeight: 600 }}>
-                      {act.details}
-                    </span>
-                  )}
-                  <div style={{ fontSize: '0.72rem', color: 'var(--text-light)', marginTop: '2px' }}>
-                    {act.timestamp}
+            {projectActivities.length === 0 ? (
+              <div style={{ fontSize: '0.84rem', color: 'var(--text-muted)', padding: '16px 0' }}>
+                No activity recorded for {activeProject.name} yet.
+              </div>
+            ) : (
+              projectActivities.map(act => (
+                <div key={act.id} style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                  <img
+                    src={act.avatar}
+                    alt={act.user}
+                    style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover' }}
+                  />
+                  <div style={{ fontSize: '0.84rem' }}>
+                    <div style={{ color: 'var(--text-main)' }}>
+                      <strong style={{ color: 'var(--text-main)' }}>{act.user}</strong> {act.title}
+                    </div>
+                    {act.details && (
+                      <span style={{ fontSize: '0.75rem', color: 'var(--pastel-coral-dark)', fontWeight: 600 }}>
+                        {act.details}
+                      </span>
+                    )}
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-light)', marginTop: '2px' }}>
+                      {act.timestamp}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
       </div>

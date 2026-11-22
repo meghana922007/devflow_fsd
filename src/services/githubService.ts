@@ -1,4 +1,4 @@
-import type { Commit, Branch, PullRequest } from '../types';
+import type { Commit, Branch, PullRequest, DiffFile } from '../types';
 
 export interface GitHubRepoInfo {
   name: string;
@@ -32,7 +32,7 @@ export interface UserPublicRepo {
 }
 
 const CACHE_KEY_PREFIX = 'devflow_gh_cache_';
-const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes cache to protect rate limits
+const CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes cache to protect rate limits
 
 interface CachedData<T> {
   timestamp: number;
@@ -45,13 +45,49 @@ function getFromCache<T>(key: string): T | null {
     if (!raw) return null;
     const parsed: CachedData<T> = JSON.parse(raw);
     if (Date.now() - parsed.timestamp > CACHE_TTL_MS) {
-      localStorage.removeItem(CACHE_KEY_PREFIX + key);
       return null;
     }
     return parsed.data;
   } catch {
     return null;
   }
+}
+
+function getStaleFromCache<T>(key: string): T | null {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY_PREFIX + key);
+    if (!raw) return null;
+    const parsed: CachedData<T> = JSON.parse(raw);
+    return parsed.data;
+  } catch {
+    return null;
+  }
+}
+
+function formatRateLimitReset(res: Response): string {
+  const resetHeader = res.headers.get('x-ratelimit-reset');
+  if (!resetHeader) return '';
+  const resetEpoch = Number(resetHeader);
+  if (!Number.isFinite(resetEpoch) || resetEpoch <= 0) return '';
+  return new Date(resetEpoch * 1000).toLocaleTimeString([], {
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+}
+
+function buildRateLimitMessage(prefix: string, res: Response): string {
+  const resetTime = formatRateLimitReset(res);
+  return `${prefix}${resetTime ? ` (resets at ${resetTime})` : ''}. Add a Personal Access Token for 5,000 req/hr.`;
+}
+
+export function getCachedUserPublicRepos(username: string): UserPublicRepo[] | null {
+  return getStaleFromCache<UserPublicRepo[]>(`user_repos_${username.toLowerCase()}`);
+}
+
+export function hasGitHubToken(): boolean {
+  const envToken = (import.meta as any).env?.VITE_GITHUB_TOKEN;
+  const storedToken = localStorage.getItem('devflow_github_pat');
+  return Boolean((storedToken && storedToken.trim()) || (envToken && String(envToken).trim()));
 }
 
 function setToCache<T>(key: string, data: T): void {
@@ -127,8 +163,11 @@ export async function fetchGitHubRepoDetails(
   });
 
   if (!res.ok) {
-    if (res.status === 403) {
-      throw new Error('GitHub API rate limit reached (60 req/hr). Add a Personal Access Token in settings or wait a few minutes.');
+    if (res.status === 401) {
+      throw new Error('Invalid or expired GitHub Personal Access Token.');
+    }
+    if (res.status === 403 || res.status === 429) {
+      throw new Error(buildRateLimitMessage('GitHub API rate limit reached (60 req/hr without token)', res));
     }
     if (res.status === 404) {
       throw new Error(`Repository "${owner}/${repo}" was not found or is private.`);
@@ -170,12 +209,19 @@ export async function fetchGitHubCommits(
     if (cached) return cached;
   }
 
-  const url = `https://api.github.com/repos/${owner}/${repo}/commits${branch ? `?sha=${branch}` : ''}?per_page=20`;
+  const params = new URLSearchParams({ per_page: '20' });
+  if (branch) {
+    params.set('sha', branch);
+  }
+  const url = `https://api.github.com/repos/${owner}/${repo}/commits?${params.toString()}`;
   const res = await fetch(url, { headers: getHeaders(patToken) });
 
   if (!res.ok) {
-    if (res.status === 403) {
-      throw new Error('GitHub API rate limit reached. Using cached/local commits.');
+    if (res.status === 401) {
+      throw new Error('Invalid or expired GitHub Personal Access Token.');
+    }
+    if (res.status === 403 || res.status === 429) {
+      throw new Error(buildRateLimitMessage('GitHub API rate limit reached', res));
     }
     throw new Error(`Failed to fetch commits: ${res.statusText}`);
   }
@@ -244,8 +290,11 @@ export async function fetchGitHubBranches(
   });
 
   if (!res.ok) {
-    if (res.status === 403) {
-      throw new Error('GitHub API rate limit reached. Using cached branches.');
+    if (res.status === 401) {
+      throw new Error('Invalid or expired GitHub Personal Access Token.');
+    }
+    if (res.status === 403 || res.status === 429) {
+      throw new Error(buildRateLimitMessage('GitHub API rate limit reached', res));
     }
     throw new Error(`Failed to fetch branches: ${res.statusText}`);
   }
@@ -286,8 +335,11 @@ export async function fetchGitHubPullRequests(
   });
 
   if (!res.ok) {
-    if (res.status === 403) {
-      throw new Error('GitHub API rate limit reached.');
+    if (res.status === 401) {
+      throw new Error('Invalid or expired GitHub Personal Access Token.');
+    }
+    if (res.status === 403 || res.status === 429) {
+      throw new Error(buildRateLimitMessage('GitHub API rate limit reached', res));
     }
     throw new Error(`Failed to fetch pull requests: ${res.statusText}`);
   }
@@ -322,15 +374,7 @@ export async function fetchGitHubPullRequests(
       deletions: pr.deletions || 8,
       changedFilesCount: pr.changed_files || 2,
       mergeable: pr.mergeable ?? true,
-      diffFiles: [
-        {
-          filename: 'src/App.tsx',
-          status: 'modified',
-          additions: 15,
-          deletions: 4,
-          patch: '@@ -12,4 +12,15 @@ export const App = () => {\n+ // Live GitHub pull request patch\n+ return <DevFlowWorkspace />;\n }'
-        }
-      ],
+      diffFiles: [],
       createdAt: pr.created_at ? new Date(pr.created_at).toLocaleDateString() : 'Recently',
       updatedAt: pr.updated_at ? new Date(pr.updated_at).toLocaleDateString() : 'Recently',
       htmlUrl: pr.html_url,
@@ -342,19 +386,73 @@ export async function fetchGitHubPullRequests(
   return formatted;
 }
 
-export async function fetchUserPublicRepos(
-  username: string,
-  patToken?: string
-): Promise<UserPublicRepo[]> {
-  const cacheKey = `user_repos_${username}`;
-  const cached = getFromCache<UserPublicRepo[]>(cacheKey);
-  if (cached) return cached;
+export async function fetchGitHubPullRequestFiles(
+  owner: string,
+  repo: string,
+  prNumber: number,
+  patToken?: string,
+  forceRefresh = false
+): Promise<DiffFile[]> {
+  const cacheKey = `pr_files_${owner}_${repo}_${prNumber}`;
+  if (!forceRefresh) {
+    const cached = getFromCache<DiffFile[]>(cacheKey);
+    if (cached) return cached;
+  }
 
-  const res = await fetch(`https://api.github.com/users/${username}/repos?sort=updated&per_page=20`, {
+  const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/pulls/${prNumber}/files?per_page=30`, {
     headers: getHeaders(patToken)
   });
 
   if (!res.ok) {
+    if (res.status === 401) {
+      throw new Error('Invalid or expired GitHub Personal Access Token.');
+    }
+    if (res.status === 403 || res.status === 429) {
+      throw new Error(buildRateLimitMessage('GitHub API rate limit reached while loading diff files', res));
+    }
+    throw new Error(`Failed to fetch PR diff files: ${res.statusText}`);
+  }
+
+  const rawFiles = await res.json();
+  if (!Array.isArray(rawFiles)) return [];
+
+  const formatted: DiffFile[] = rawFiles.map((f: any) => ({
+    filename: f.filename,
+    status: f.status === 'added' ? 'added' : f.status === 'removed' ? 'deleted' : 'modified',
+    additions: f.additions || 0,
+    deletions: f.deletions || 0,
+    patch: f.patch || '@@ Binary or empty file diff @@'
+  }));
+
+  setToCache(cacheKey, formatted);
+  return formatted;
+}
+
+export async function fetchUserPublicRepos(
+  username: string,
+  patToken?: string,
+  forceRefresh = false
+): Promise<UserPublicRepo[]> {
+  const cacheKey = `user_repos_${username.toLowerCase()}`;
+  if (!forceRefresh) {
+    const cached = getFromCache<UserPublicRepo[]>(cacheKey);
+    if (cached) return cached;
+  }
+
+  const res = await fetch(`https://api.github.com/users/${encodeURIComponent(username)}/repos?sort=updated&per_page=100`, {
+    headers: getHeaders(patToken)
+  });
+
+  if (!res.ok) {
+    if (res.status === 401) {
+      throw new Error('Invalid or expired GitHub Personal Access Token.');
+    }
+    if (res.status === 404) {
+      throw new Error(`GitHub user "@${username}" not found.`);
+    }
+    if (res.status === 403 || res.status === 429) {
+      throw new Error(buildRateLimitMessage('GitHub API rate limit reached while fetching repositories', res));
+    }
     throw new Error(`Failed to fetch user repositories: ${res.statusText}`);
   }
 

@@ -3,7 +3,6 @@ import { useApp } from '../../context/AppContext';
 import { TaskCard } from './TaskCard';
 import { TaskTableView } from './TaskTableView';
 import type { TaskStage } from '../../types';
-import { mockUsers } from '../../data/mockData';
 import {
   Plus,
   Filter,
@@ -26,7 +25,8 @@ export const KanbanBoard: React.FC = () => {
     setAssigneeFilter,
     moveTaskStage,
     setIsTaskModalOpen,
-    setEditingTask
+    setEditingTask,
+    users
   } = useApp();
 
   const [viewMode, setViewMode] = useState<'table' | 'kanban'>('table');
@@ -257,7 +257,7 @@ export const KanbanBoard: React.FC = () => {
             }}
           >
             <option value="all">All Engineers</option>
-            {mockUsers.map(u => (
+            {users.map(u => (
               <option key={u.id} value={u.id}>{u.name}</option>
             ))}
           </select>

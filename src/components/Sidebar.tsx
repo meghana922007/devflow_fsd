@@ -12,7 +12,8 @@ import {
   LogOut,
   ChevronUp,
   Plus,
-  CheckCircle2
+  CheckCircle2,
+  RotateCcw
 } from 'lucide-react';
 
 export const Sidebar: React.FC = () => {
@@ -31,7 +32,8 @@ export const Sidebar: React.FC = () => {
     logout,
     users,
     switchUser,
-    setIsNewProjectModalOpen
+    setIsNewProjectModalOpen,
+    resetDemoData
   } = useApp();
 
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -437,7 +439,23 @@ export const Sidebar: React.FC = () => {
               </button>
             ))}
 
-            <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '8px', marginTop: '4px' }}>
+            <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '8px', marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <button
+                onClick={() => { resetDemoData(); setShowUserMenu(false); }}
+                style={{
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '6px 8px',
+                  color: '#2b6777',
+                  fontWeight: 700,
+                  fontSize: '0.8rem',
+                  borderRadius: 'var(--radius-sm)'
+                }}
+              >
+                <RotateCcw size={14} /> Reset Demo Data
+              </button>
               <button
                 onClick={() => { logout(); setShowUserMenu(false); }}
                 style={{

@@ -20,20 +20,21 @@ export const PullRequestList: React.FC = () => {
     pullRequests,
     mergePullRequest,
     closePullRequest,
-    setSelectedPRForDiff,
+    openPRDiff,
     setIsNewPRModalOpen,
-    setActiveTab
+    setActiveTab,
+    searchQuery,
+    setSearchQuery
   } = useApp();
 
   const [statusFilter, setStatusFilter] = useState<PullRequestStatus | 'all'>('all');
-  const [prSearch, setPrSearch] = useState('');
 
   const projectPRs = pullRequests.filter(pr => pr.projectId === activeProject.id);
 
   const filteredPRs = projectPRs.filter(pr => {
     if (statusFilter !== 'all' && pr.status !== statusFilter) return false;
-    if (prSearch.trim()) {
-      const q = prSearch.toLowerCase();
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
       const matchTitle = pr.title.toLowerCase().includes(q);
       const matchAuthor = pr.authorName.toLowerCase().includes(q) || pr.githubUsername.toLowerCase().includes(q);
       const matchBranch = pr.sourceBranch.toLowerCase().includes(q);
@@ -223,8 +224,8 @@ export const PullRequestList: React.FC = () => {
         gap: '12px'
       }}>
         {/* Status Pills */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          {(['all', 'open', 'merged', 'closed'] as const).map(tab => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+          {(['all', 'open', 'draft', 'merged', 'closed'] as const).map(tab => (
             <button
               key={tab}
               onClick={() => setStatusFilter(tab)}
@@ -251,8 +252,8 @@ export const PullRequestList: React.FC = () => {
           <input
             type="text"
             placeholder="Search PRs, branches, tasks..."
-            value={prSearch}
-            onChange={(e) => setPrSearch(e.target.value)}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
             style={{
               width: '100%',
               padding: '8px 12px 8px 34px',
@@ -275,7 +276,7 @@ export const PullRequestList: React.FC = () => {
             No Pull Requests Found
           </h3>
           <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', maxWidth: '400px', margin: '6px auto 16px auto' }}>
-            {prSearch ? 'Try adjusting your search criteria or status filter.' : 'Create your first pull request to sync code changes with project tasks.'}
+            {searchQuery ? 'Try adjusting your search criteria or status filter.' : 'Create your first pull request to sync code changes with project tasks.'}
           </p>
           <button
             onClick={() => setIsNewPRModalOpen(true)}
@@ -365,7 +366,7 @@ export const PullRequestList: React.FC = () => {
                   {pr.linkedTaskId && (
                     <button
                       onClick={() => setActiveTab('kanban')}
-                      title="Jump to Module 1 Kanban Task"
+                      title="Jump to Kanban Board"
                       style={{
                         display: 'inline-flex',
                         alignItems: 'center',
@@ -386,7 +387,7 @@ export const PullRequestList: React.FC = () => {
                   {pr.linkedIssueId && (
                     <button
                       onClick={() => setActiveTab('issues')}
-                      title="Jump to Module 2 Issue Tracker"
+                      title="Jump to Issue Tracker"
                       style={{
                         display: 'inline-flex',
                         alignItems: 'center',
@@ -408,7 +409,7 @@ export const PullRequestList: React.FC = () => {
                 {/* Actions */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <button
-                    onClick={() => setSelectedPRForDiff(pr)}
+                    onClick={() => openPRDiff(pr)}
                     style={{
                       display: 'inline-flex',
                       alignItems: 'center',

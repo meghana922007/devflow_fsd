@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { X, UserPlus, UserCheck, FolderGit2 } from 'lucide-react';
 
@@ -10,32 +10,14 @@ const avatarPresets = [
   'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&auto=format&fit=crop&q=80'
 ];
 
-export const UserModal: React.FC = () => {
-  const { isUserModalOpen, setIsUserModalOpen, editingUser, addUser, updateUser } = useApp();
+const UserModalForm: React.FC<{ onClose: () => void }> = ({ onClose }) => {
+  const { editingUser, addUser, updateUser } = useApp();
 
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [role, setRole] = useState('Full Stack Engineer');
-  const [githubUsername, setGithubUsername] = useState('');
-  const [avatar, setAvatar] = useState(avatarPresets[0]);
-
-  useEffect(() => {
-    if (editingUser) {
-      setName(editingUser.name);
-      setEmail(editingUser.email);
-      setRole(editingUser.role);
-      setGithubUsername(editingUser.githubUsername || '');
-      setAvatar(editingUser.avatar || avatarPresets[0]);
-    } else {
-      setName('');
-      setEmail('');
-      setRole('Full Stack Engineer');
-      setGithubUsername('');
-      setAvatar(avatarPresets[0]);
-    }
-  }, [editingUser, isUserModalOpen]);
-
-  if (!isUserModalOpen) return null;
+  const [name, setName] = useState(editingUser?.name ?? '');
+  const [email, setEmail] = useState(editingUser?.email ?? '');
+  const [role, setRole] = useState(editingUser?.role ?? 'Full Stack Engineer');
+  const [githubUsername, setGithubUsername] = useState(editingUser?.githubUsername ?? '');
+  const [avatar, setAvatar] = useState(editingUser?.avatar || avatarPresets[0]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,7 +41,7 @@ export const UserModal: React.FC = () => {
       });
     }
 
-    setIsUserModalOpen(false);
+    onClose();
   };
 
   return (
@@ -103,7 +85,7 @@ export const UserModal: React.FC = () => {
             </h3>
           </div>
 
-          <button onClick={() => setIsUserModalOpen(false)} style={{ color: 'var(--text-muted)' }}>
+          <button type="button" onClick={onClose} style={{ color: 'var(--text-muted)' }}>
             <X size={20} />
           </button>
         </div>
@@ -225,7 +207,7 @@ export const UserModal: React.FC = () => {
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '12px', paddingTop: '16px', borderTop: '1px solid var(--border-subtle)' }}>
             <button
               type="button"
-              onClick={() => setIsUserModalOpen(false)}
+              onClick={onClose}
               className="btn-secondary"
             >
               Cancel
@@ -241,5 +223,18 @@ export const UserModal: React.FC = () => {
         </form>
       </div>
     </div>
+  );
+};
+
+export const UserModal: React.FC = () => {
+  const { isUserModalOpen, setIsUserModalOpen, editingUser } = useApp();
+
+  if (!isUserModalOpen) return null;
+
+  return (
+    <UserModalForm
+      key={editingUser?.id || 'new-user'}
+      onClose={() => setIsUserModalOpen(false)}
+    />
   );
 };

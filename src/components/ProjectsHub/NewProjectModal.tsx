@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { mockUsers } from '../../data/mockData';
 import { X, FolderPlus, Check, FolderGit2 } from 'lucide-react';
 
 const pastelColors = [
@@ -12,17 +11,17 @@ const pastelColors = [
   { name: 'Coral', hex: '#E11D48' }
 ];
 
-export const NewProjectModal: React.FC = () => {
-  const { isNewProjectModalOpen, setIsNewProjectModalOpen, addProject } = useApp();
+const NewProjectForm: React.FC<{ onClose: () => void }> = ({ onClose }) => {
+  const { addProject, users, currentUser, userPublicRepos } = useApp();
 
   const [name, setName] = useState('');
   const [key, setKey] = useState('');
   const [description, setDescription] = useState('');
-  const [gitRepo, setGitRepo] = useState('https://github.com/my-org/my-project');
+  const [gitRepo, setGitRepo] = useState('');
   const [color, setColor] = useState(pastelColors[0].hex);
-  const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([mockUsers[0].id, mockUsers[1].id]);
-
-  if (!isNewProjectModalOpen) return null;
+  const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>(() =>
+    currentUser ? [currentUser.id] : (users[0] ? [users[0].id] : [])
+  );
 
   const toggleMember = (id: string) => {
     if (selectedMemberIds.includes(id)) {
@@ -37,21 +36,18 @@ export const NewProjectModal: React.FC = () => {
     e.preventDefault();
     if (!name.trim() || !key.trim()) return;
 
-    const assignedMembers = mockUsers.filter(u => selectedMemberIds.includes(u.id));
+    const assignedMembers = users.filter(u => selectedMemberIds.includes(u.id));
 
     addProject({
       name: name.trim(),
       key: key.trim().toUpperCase(),
       description: description.trim(),
       color,
-      gitRepo: gitRepo.trim(),
-      teamMembers: assignedMembers
+      gitRepo: gitRepo.trim() || undefined,
+      teamMembers: assignedMembers.length > 0 ? assignedMembers : users.slice(0, 1)
     });
 
-    setIsNewProjectModalOpen(false);
-    setName('');
-    setKey('');
-    setDescription('');
+    onClose();
   };
 
   return (
@@ -94,7 +90,7 @@ export const NewProjectModal: React.FC = () => {
             </h3>
           </div>
 
-          <button onClick={() => setIsNewProjectModalOpen(false)} style={{ color: 'var(--text-muted)' }}>
+          <button type="button" onClick={onClose} style={{ color: 'var(--text-muted)' }}>
             <X size={20} />
           </button>
         </div>
@@ -171,13 +167,13 @@ export const NewProjectModal: React.FC = () => {
 
           <div>
             <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '6px' }}>
-              GITHUB REPOSITORY URL
+              GITHUB REPOSITORY URL (Optional)
             </label>
             <div style={{ position: 'relative' }}>
               <FolderGit2 size={16} color="var(--text-light)" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
               <input
                 type="url"
-                placeholder="https://github.com/my-org/my-project"
+                placeholder="https://github.com/owner/repository"
                 value={gitRepo}
                 onChange={(e) => setGitRepo(e.target.value)}
                 style={{
@@ -189,6 +185,28 @@ export const NewProjectModal: React.FC = () => {
                 }}
               />
             </div>
+            {userPublicRepos.length > 0 && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '8px' }}>
+                {userPublicRepos.slice(0, 4).map(r => (
+                  <button
+                    key={r.name}
+                    type="button"
+                    onClick={() => setGitRepo(r.htmlUrl)}
+                    style={{
+                      fontSize: '0.72rem',
+                      fontWeight: 700,
+                      padding: '3px 9px',
+                      borderRadius: 'var(--radius-pill)',
+                      backgroundColor: gitRepo === r.htmlUrl ? '#2b6777' : '#eef6f8',
+                      color: gitRepo === r.htmlUrl ? '#ffffff' : '#2b6777',
+                      border: '1px solid #c8d8e4'
+                    }}
+                  >
+                    {r.name}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           <div>
@@ -226,7 +244,7 @@ export const NewProjectModal: React.FC = () => {
               ASSIGN TEAM MEMBERS ({selectedMemberIds.length} Selected)
             </label>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '160px', overflowY: 'auto' }}>
-              {mockUsers.map(user => {
+              {users.map(user => {
                 const isSelected = selectedMemberIds.includes(user.id);
                 return (
                   <div
@@ -266,7 +284,7 @@ export const NewProjectModal: React.FC = () => {
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '12px', paddingTop: '16px', borderTop: '1px solid var(--border-subtle)' }}>
             <button
               type="button"
-              onClick={() => setIsNewProjectModalOpen(false)}
+              onClick={onClose}
               className="btn-secondary"
             >
               Cancel
@@ -281,5 +299,18 @@ export const NewProjectModal: React.FC = () => {
         </form>
       </div>
     </div>
+  );
+};
+
+export const NewProjectModal: React.FC = () => {
+  const { isNewProjectModalOpen, setIsNewProjectModalOpen, currentUser } = useApp();
+
+  if (!isNewProjectModalOpen) return null;
+
+  return (
+    <NewProjectForm
+      key={currentUser?.id || 'guest'}
+      onClose={() => setIsNewProjectModalOpen(false)}
+    />
   );
 };
